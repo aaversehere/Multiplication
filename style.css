@@ -1,0 +1,1200 @@
+/* ===================================================
+  style.css — TEMA: PASTEL NATURE PLAYFUL
+  =================================================== */
+
+:root {
+    /* PALET WARNA ALAM PASTEL */
+    --bg-utama: #F4F9F4;        /* Putih kehijauan sangat muda */
+    --bg-kartu: #FFFFFF;
+    
+    /* Warna Aksen Alam */
+    --hijau-sage: #7fd3b4;      /* Hijau lembut */
+    --hijau-tua: #55918c;       /* Hijau hutan soft */
+    --coklat-kayu: #daa26b;     /* Warna kayu muda */
+    --krem-pasir: #ebd292;      /* Warna pasir */
+    --biru-langit: #A0C4FF;     /* Biru langit pastel */
+    
+    /* Warna Teks */
+    --teks-judul: #5C8D89;
+    --teks-isi: #555555;
+    
+    /* Font */
+    --font-judul: 'Fredoka One', cursive;
+    --font-isi: 'Nunito', sans-serif;
+
+    --cursor-x: 50vw;
+    --cursor-y: 50vh;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    background: var(--bg-utama);
+}
+
+body {
+    position: relative;
+    background: transparent;
+    min-height: 100vh;
+    font-family: var(--font-isi);
+    color: var(--teks-isi);
+    padding-top: 80px; /* Space untuk header fixed */
+    padding-bottom: 40px;
+    overflow-x: hidden;
+}
+
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    inset: -18px;
+    background: url('cover semua.jpeg') center / cover no-repeat;
+    pointer-events: none;
+}
+
+body::before {
+    z-index: -2;
+    filter: blur(9px) brightness(0.86) saturate(0.92);
+    transform: scale(1.03);
+}
+
+body::after {
+    z-index: -1;
+    opacity: 0.95;
+    -webkit-mask-image: radial-gradient(
+        circle 150px at var(--cursor-x) var(--cursor-y),
+        #000 0 38%,
+        rgba(0, 0, 0, 0.7) 52%,
+        transparent 72%
+    );
+    mask-image: radial-gradient(
+        circle 150px at var(--cursor-x) var(--cursor-y),
+        #000 0 38%,
+        rgba(0, 0, 0, 0.7) 52%,
+        transparent 72%
+    );
+}
+
+/* ============================
+   TYPOGRAPHY & TITLE
+   ============================ */
+h1, h2, h3 {
+    font-family: var(--font-judul);
+    color: var(--teks-judul);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+button {
+    font-family: var(--font-judul);
+    border: none;
+    outline: none;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* ============================
+   HEADER & NAVIGASI (FIXED)
+   ============================ */
+#mainHeader {
+    position: fixed;
+    top: 0; left: 0; width: 100%;
+    height: 70px;
+    background: var(--bg-kartu);
+    border-bottom: 5px solid var(--hijau-sage);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    z-index: 1000;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-judul);
+    font-size: 1.2rem;
+    color: var(--hijau-tua);
+}
+
+#mainHeader nav {
+    display: flex;
+    gap: 10px;
+}
+
+#mainHeader nav a {
+    text-decoration: none;
+    color: var(--hijau-tua);
+    font-weight: bold;
+    padding: 8px 15px;
+    border-radius: 20px;
+    background: var(--krem-pasir);
+    font-size: 0.9rem;
+    transition: 0.2s;
+}
+
+#mainHeader nav a:hover {
+    background: var(--hijau-sage);
+    color: white;
+}
+
+.btn-setting {
+    background: transparent;
+    font-size: 1.5rem;
+}
+
+/* ============================
+   COVER PAGE (TENGAH LAYAR)
+   ============================ */
+.cover {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100vh;
+    background: transparent;
+    z-index: 9999;
+    isolation: isolate;
+    overflow: hidden;
+    
+    /* KUNCI POSISI TENGAH */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.cover::before,
+.cover::after {
+    content: "";
+    position: absolute;
+    inset: -18px;
+    background: url('cover semua.jpeg') center / cover no-repeat;
+    pointer-events: none;
+}
+
+.cover::before {
+    z-index: -2;
+    filter: blur(9px) brightness(0.86) saturate(0.92);
+    transform: scale(1.03);
+}
+
+.cover::after {
+    z-index: -1;
+    opacity: 0.95;
+    -webkit-mask-image: radial-gradient(
+        circle 150px at var(--cursor-x) var(--cursor-y),
+        #000 0 38%,
+        rgba(0, 0, 0, 0.7) 52%,
+        transparent 72%
+    );
+    mask-image: radial-gradient(
+        circle 150px at var(--cursor-x) var(--cursor-y),
+        #000 0 38%,
+        rgba(0, 0, 0, 0.7) 52%,
+        transparent 72%
+    );
+}
+
+.cover-content {
+    position: relative;
+    z-index: 1;
+    background: white;
+    padding: 40px;
+    border-radius: 40px;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    
+    border: 8px solid var(--hijau-sage);
+    box-shadow: 0 20px 0 rgba(82, 179, 143, 0.5); /* Efek 3D Tebal */
+    animation: bounceIn 0.8s ease;
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.mascot-img {
+    width: 120px;
+    margin-bottom: 20px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.title {
+    font-size: 2.5rem;
+    color: var(--hijau-tua);
+    margin-bottom: 10px;
+    line-height: 1.1;
+    text-shadow: 2px 2px 0 var(--krem-pasir);
+}
+
+.subtitle {
+    color: #888;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+.btn-start {
+    background: var(--coklat-kayu);
+    color: white;
+    font-size: 1.5rem;
+    padding: 15px 40px;
+    border-radius: 50px;
+    width: 100%;
+    box-shadow: 0 8px 0 #e79c52;
+    margin-bottom: 10px;
+}
+
+.btn-start:hover {
+    background: #bb7c42;
+}
+
+.btn-start:active {
+    transform: translateY(8px);
+    box-shadow: none;
+}
+
+/* ============================
+   PAGE CONTAINER
+   ============================ */
+.page {
+    width: 90%;
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 30px;
+    border: 4px solid var(--krem-pasir);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* ============================
+   MENU GRID (HOME)
+   ============================ */
+.menu-grid {
+    display: grid;
+    /* Grid otomatis menyesuaikan ukuran layar */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 20px;
+}
+
+.menu-card {
+    background: rgb(233, 143, 143);
+    border-radius: 25px;
+    padding: 20px;
+    text-align: center;
+    border: 3px solid transparent;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    transition: all 0.3s;
+    cursor: pointer;
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+}
+
+/* Warna-warni Pastel untuk Kartu */
+.menu-card.color-1 { background: #FFEBEE; border-color: #e96f7b; } /* Merah Muda */
+.menu-card.color-2 { background: #E8F5E9; border-color: #85dd88; } /* Hijau Muda */
+.menu-card.color-3 { background: #FFF3E0; border-color: #f1b863; } /* Orange Muda */
+.menu-card.color-4 { background: #E3F2FD; border-color: #54a2e2; } /* Biru Muda */
+.menu-card.color-5 { background: #F3E5F5; border-color: #d086dd; } /* Ungu Muda */
+.menu-card.color-6 { background: #FFFDE7; border-color: #eee27b; } /* Kuning Muda */
+
+.menu-card:hover {
+    transform: translateY(-10px) rotate(-2deg);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+
+.menu-card img {
+    width: 85px;  /* Ukuran Icon Konsisten */
+    height: 85px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.08));
+    transition: transform 0.25s ease;
+}
+
+.menu-card:hover img {
+    transform: scale(1.08);
+}
+
+.menu-card h3 {
+    font-size: 1.1rem;
+    color: var(--teks-isi);
+}
+
+/* ============================
+   GAME & LEVEL BUTTONS
+   ============================ */
+.game-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.game-btn {
+    background: rgba(255, 255, 255, 0.733);
+    border: 3px solid var(--hijau-sage);
+    border-radius: 20px;
+    padding: 20px;
+    font-size: 1.2rem;
+    color: var(--hijau-tua);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 5px 0 var(--hijau-sage);
+    text-align: left;
+}
+
+.game-btn .emoji {
+    font-size: 2rem;
+}
+
+.game-btn:hover {
+    background: var(--krem-pasir);
+}
+
+.level-box {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 400px;
+    margin: 20px auto;
+}
+
+.lvl-btn {
+    padding: 15px;
+    border-radius: 50px;
+    font-size: 1.2rem;
+    color: white;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+}
+
+.lvl-btn.easy { background: #81C784; }
+.lvl-btn.medium { background: #FFB74D; }
+.lvl-btn.hard { background: #e94646; }
+
+/* ============================
+   GAMEPLAY AREA (MINI GAMES)
+   ============================ */
+#questionBox {
+    background: var(--biru-langit);
+    color: white;
+    font-family: var(--font-judul);
+    font-size: 3.5rem;
+    padding: 30px;
+    border-radius: 30px;
+    margin: 20px 0;
+    text-align: center;
+    border: 5px dashed white;
+    box-shadow: 0 10px 0 rgba(160, 196, 255, 0.5);
+}
+
+#answerBox {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.jawabanBtn, #answerBox button {
+    background: white;
+    border: 3px solid var(--coklat-kayu);
+    color: var(--coklat-kayu);
+    font-size: 1.5rem;
+    padding: 15px;
+    border-radius: 20px;
+    box-shadow: 0 5px 0 var(--coklat-kayu);
+    width: 100%;
+}
+
+.jawabanBtn:hover, #answerBox button:hover {
+    background: var(--krem-pasir);
+}
+
+.feedback-correct { 
+    background-color: #A5D6A7 !important; 
+    border-color: #2E7D32 !important;
+    color: #1B5E20 !important;
+}
+.feedback-wrong { 
+    background-color: #f7e43d !important; 
+    border-color: #C62828 !important;
+    color: #B71C1C !important;
+}
+
+/* ============================
+   LATIHAN SOAL (QUIZ) CAMPURAN
+   ============================ */
+#quizContainer {
+    text-align: center;
+}
+
+.soal-text {
+    font-size: 2rem;
+    color: var(--hijau-tua);
+    margin: 20px 0;
+}
+
+.soal-story {
+    font-size: 1.3rem;
+    color: var(--teks-isi);
+    margin: 20px 0;
+    line-height: 1.6;
+    background: #E0F7FA;
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px dashed var(--biru-langit);
+}
+
+.soal-img {
+    max-width: 100%;
+    height: 150px;
+    object-fit: contain;
+    margin: 10px auto;
+    display: block;
+    animation: bounceIn 0.5s;
+}
+
+/* ============================
+   VIDEO RESPONSIF (16:9)
+   ============================ */
+.video-responsive {
+    position: relative;
+    padding-bottom: 56.25%; /* Rasio 16:9 */
+    height: 0;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 4px solid var(--hijau-sage);
+    background: #000;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.video-responsive iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: 0;
+}
+
+.video-responsive video {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: 0;
+    border-radius: 16px;
+    object-fit: contain;
+    background: #000;
+}
+
+.video-title {
+    text-align: center;
+    color: var(--hijau-tua);
+    margin: 8px 0 10px;
+    font-size: 1.1rem;
+}
+
+/* ============================
+   MODUL AJAR GURU (PDF)
+   ============================ */
+.teacher-module {
+    margin-top: 18px;
+}
+
+.teacher-module-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.pdf-viewer {
+    width: 100%;
+    height: min(72vh, 760px);
+    min-height: 480px;
+    overflow: hidden;
+    border: 4px solid var(--hijau-sage);
+    border-radius: 18px;
+    background: #f7fbfa;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+}
+
+.pdf-viewer object {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.pdf-viewer p {
+    padding: 24px;
+    text-align: center;
+}
+
+/* ============================
+   KOMPONEN LAIN (Settings, dll)
+   ============================ */
+.setting-group {
+    background: #F5F5F5;
+    padding: 20px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.btn-action {
+    background: var(--hijau-tua);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 1rem;
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn-download {
+    background: var(--coklat-kayu);
+}
+
+.btn-back {
+    background: #ff4736;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    margin-top: 20px;
+    box-shadow: 0 4px 0 #D32F2F;
+}
+
+/* Toggle Switch */
+.switch-control {
+    position: relative; width: 60px; height: 34px;
+}
+.switch-control input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    transition: .4s; border-radius: 34px;
+}
+.slider:before {
+    position: absolute; content: "";
+    height: 26px; width: 26px;
+    left: 4px; bottom: 4px;
+    background-color: white;
+    transition: .4s; border-radius: 50%;
+}
+input:checked + .slider { background-color: var(--hijau-sage); }
+input:checked + .slider:before { transform: translateX(26px); }
+
+/* Skor Pojok Kanan */
+#scoreBox {
+    position: fixed;
+    top: 80px; right: 20px;
+    background: white;
+    border: 3px solid var(--hijau-sage);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: var(--hijau-tua);
+    box-shadow: 0 5px 0 rgba(0,0,0,0.1);
+    z-index: 900;
+}
+
+/* ============================
+   RESPONSIVE (HP)
+   ============================ */
+@media (max-width: 768px) {
+    body { padding-top: 70px; }
+    
+    #mainHeader { 
+        padding: 0 15px; 
+    }
+    
+    #mainHeader nav a {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+
+    .cover-content { 
+        padding: 30px 20px; 
+        max-width: 90%;
+    }
+    
+    .title { font-size: 2rem; }
+    .mascot-img { width: 100px; }
+    
+    .menu-grid {
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 15px;
+    }
+    
+    .menu-card {
+        min-height: 140px;
+        padding: 15px;
+    }
+    
+    .menu-card img { width: 60px; height: 60px; }
+    .menu-card img.interactive-module-icon { width: 90px; height: 90px; }
+    .menu-card h3 { font-size: 0.9rem; }
+    
+    #questionBox { font-size: 2.5rem; padding: 20px; }
+    #answerBox button { font-size: 1.5rem; padding: 15px; }
+    
+    .soal-text { font-size: 1.8rem; }
+    .soal-story { font-size: 1rem; padding: 15px; }
+}
+
+/* ============================================================
+   GAME 2 — CERITA BERGAMBAR VISUAL
+   ============================================================ */
+.story-card-visual {
+    background: #E0F7FA;
+    border: 2px dashed var(--biru-langit);
+    border-radius: 20px;
+    padding: 18px;
+    margin: 12px 0;
+    text-align: center;
+}
+
+.story-text-box {
+    font-size: 1.05rem;
+    color: var(--teks-isi);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.story-emoji-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 0;
+    padding: 12px;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #b2ebf2;
+}
+
+.story-emoji-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.story-emoji-cell {
+    font-size: 1.8rem;
+    line-height: 1;
+    filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.1));
+}
+
+.story-count-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--hijau-tua);
+    margin-top: 10px;
+}
+
+/* ============================================================
+   QUIZ 30 SOAL
+   ============================================================ */
+.quiz-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+#quizProgress { font-size: 0.88rem; color: #888; font-weight: 600; }
+#quizScore    { font-weight: 700; color: var(--hijau-tua); }
+
+.quiz30-card {
+    background: white;
+    border-radius: 22px;
+    padding: 22px;
+    border: 3px solid var(--krem-pasir);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    animation: slideUp 0.3s ease;
+}
+
+.quiz30-num {
+    font-size: 0.72rem; font-weight: 700; color: #aaa;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+}
+
+.quiz30-soal-angka {
+    font-size: 2.8rem;
+    font-family: var(--font-judul);
+    color: var(--hijau-tua);
+    text-align: center;
+    margin: 16px 0;
+}
+
+.quiz30-soal-cerita {
+    background: #E0F7FA;
+    border: 2px dashed var(--biru-langit);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--teks-isi);
+}
+
+.quiz30-emoji-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin: 12px 0;
+    padding: 12px;
+    background: #f9f9f9;
+    border-radius: 12px;
+    border: 2px solid #e0e0e0;
+}
+
+.quiz30-emoji-row {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.quiz30-emoji-cell { font-size: 1.6rem; line-height: 1; }
+
+.quiz30-opts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.quiz30-opt-btn {
+    background: white;
+    border: 3px solid var(--coklat-kayu);
+    color: var(--coklat-kayu);
+    font-size: 1.4rem;
+    padding: 14px;
+    border-radius: 18px;
+    box-shadow: 0 4px 0 var(--coklat-kayu);
+    font-family: var(--font-judul);
+    cursor: pointer;
+    transition: 0.15s;
+    width: 100%;
+}
+
+.quiz30-opt-btn:hover { background: var(--krem-pasir); }
+.opt30-correct { background: #A5D6A7 !important; border-color: #2E7D32 !important; color: #1B5E20 !important; box-shadow: 0 4px 0 #2E7D32 !important; }
+.opt30-wrong   { background: #FFCDD2 !important; border-color: #C62828 !important; color: #B71C1C !important; box-shadow: 0 4px 0 #C62828 !important; }
+
+/* ============================================================
+   RESPONSIVE TAMBAHAN
+   ============================================================ */
+@media (max-width: 480px) {
+    .quiz30-opts { grid-template-columns: 1fr 1fr; }
+    .quiz30-opt-btn { font-size: 1.2rem; padding: 12px; }
+    .story-emoji-cell { font-size: 1.4rem; }
+    .quiz30-emoji-cell { font-size: 1.2rem; }
+}
+
+@media (min-width: 768px) {
+    .quiz30-opts { grid-template-columns: repeat(4, 1fr); }
+    .story-emoji-cell { font-size: 2rem; }
+    .quiz30-emoji-cell { font-size: 1.8rem; }
+}
+
+@media (min-width: 1024px) {
+    .menu-grid { grid-template-columns: repeat(3, 1fr); }
+    .game-list-grid { grid-template-columns: repeat(2, 1fr); }
+    .quiz30-soal-angka { font-size: 3.5rem; }
+}
+
+/* ============================================================
+   AUTH PAGES — Daftar / Login / Lupa Password
+   ============================================================ */
+
+/* Body state saat halaman auth aktif agar kartu vertikal dan horizontal rata tengah */
+body.in-auth {
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Fallback modern :has selector jika body belum ada class in-auth */
+body:has(#authPage:not([style*="none"])) {
+    padding-top: 24px;
+    padding-bottom: 24px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Wrapper auth section */
+.auth-page {
+    width: 100% !important;
+    max-width: 440px !important;
+    margin: 0 auto !important;
+    padding: 0 16px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    animation: popInAuth 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popInAuth {
+    0% {
+        opacity: 0;
+        transform: scale(0.93) translateY(18px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Kartu Form Auth */
+.auth-card {
+    background: #ffffff;
+    border-radius: 28px;
+    border: 4px solid var(--hijau-sage);
+    box-shadow: 0 20px 45px rgba(45, 95, 90, 0.18), 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    width: 100%;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Header kartu auth */
+.auth-header {
+    text-align: center;
+    background: linear-gradient(135deg, #44bca3 0%, #3ca892 50%, #4eb985 100%);
+    padding: 24px 20px 20px;
+    position: relative;
+    border-radius: 0;
+}
+
+/* Maskot badge bulat melayang */
+.auth-mascot-wrapper {
+    display: inline-block;
+    margin-bottom: 8px;
+}
+
+.auth-mascot {
+    width: 62px;
+    height: 62px;
+    background: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.1rem;
+    margin: 0 auto;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    animation: floatMascot 3.2s ease-in-out infinite;
+}
+
+@keyframes floatMascot {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.auth-header h2 {
+    font-size: 1.45rem;
+    font-family: var(--font-judul);
+    color: #ffffff;
+    margin: 0 0 4px 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+    letter-spacing: 0.5px;
+}
+
+.auth-header p {
+    color: rgba(255, 255, 255, 0.96);
+    font-size: 0.92rem;
+    font-family: var(--font-isi);
+    font-weight: 600;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* Body kartu form */
+.auth-body {
+    padding: 24px 24px 26px;
+}
+
+/* Form field */
+.auth-field {
+    margin-bottom: 14px;
+}
+
+.auth-field label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--hijau-tua);
+    margin-bottom: 6px;
+    font-family: var(--font-isi);
+    letter-spacing: 0.3px;
+}
+
+.auth-field input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1eee9;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-family: var(--font-isi);
+    color: #333333;
+    background: #fbfdfc;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    outline: none;
+}
+
+.auth-field input::placeholder {
+    color: #a4bab5;
+    font-size: 0.9rem;
+}
+
+.auth-field input:focus {
+    border-color: var(--hijau-sage);
+    background: #ffffff;
+    box-shadow: 0 0 0 3.5px rgba(127, 211, 180, 0.28);
+}
+
+/* Password wrapper & SVG Eye */
+.pw-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.pw-wrap input {
+    padding-right: 44px;
+}
+
+.pw-eye {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 6px !important;
+    cursor: pointer;
+    color: #79a89f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: color 0.2s, transform 0.15s, background-color 0.2s;
+    min-height: unset !important;
+}
+
+.pw-eye:hover {
+    color: var(--hijau-tua);
+    background: rgba(127, 211, 180, 0.15) !important;
+    transform: translateY(-50%) scale(1.08) !important;
+}
+
+.eye-icon {
+    display: block;
+}
+
+/* Tombol utama form auth */
+.btn-auth-primary {
+    width: 100%;
+    padding: 13px 20px;
+    background: linear-gradient(180deg, #5ecdb7 0%, #3ca892 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.08rem;
+    font-family: var(--font-judul);
+    letter-spacing: 0.5px;
+    box-shadow: 0 6px 0 #287a69, 0 10px 20px rgba(40, 122, 105, 0.22);
+    margin-top: 10px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-auth-primary:hover {
+    filter: brightness(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 #287a69, 0 12px 24px rgba(40, 122, 105, 0.28);
+}
+
+.btn-auth-primary:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #287a69, 0 4px 10px rgba(40, 122, 105, 0.2);
+}
+
+.btn-auth-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 6px 0 #287a69;
+}
+
+/* Link di bawah tombol */
+.auth-links {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 0.88rem;
+    color: #777777;
+    font-family: var(--font-isi);
+}
+
+.auth-links p {
+    margin-bottom: 6px;
+}
+
+.link-text {
+    color: var(--hijau-tua);
+    font-weight: 700;
+    cursor: pointer;
+    transition: color 0.15s, text-decoration 0.15s;
+}
+
+.link-text:hover {
+    color: #2b7871;
+    text-decoration: underline;
+}
+
+/* Navigasi kembali ke cover awal */
+.auth-back {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed #e2ece9;
+}
+
+.btn-back-cover {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #7f9994;
+    font-size: 0.84rem;
+    font-family: var(--font-isi);
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+    padding: 6px 14px;
+    border-radius: 20px;
+    min-height: unset !important;
+}
+
+.btn-back-cover:hover {
+    color: var(--hijau-tua);
+    background: #f0f7f5 !important;
+    transform: none !important;
+}
+
+/* Alert error & success */
+.auth-alert {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+    display: none;
+    text-align: center;
+    font-family: var(--font-isi);
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+.auth-alert-error {
+    background: #fff0f0;
+    color: #c62828;
+    border: 1.5px solid #ffcdd2;
+}
+
+.auth-alert-success {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1.5px solid #bbf7d0;
+}
+
+/* Badge langkah di Lupa Password */
+.step-badge {
+    display: block;
+    background: #f0fdf4;
+    color: var(--hijau-tua);
+    border: 1.5px solid var(--hijau-sage);
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 16px;
+    font-family: var(--font-isi);
+}
+
+/* Responsiveness kartu auth */
+@media (max-width: 480px) {
+    .auth-body {
+        padding: 20px 18px 22px;
+    }
+    .auth-header {
+        padding: 20px 16px 16px;
+    }
+    .auth-header h2 {
+        font-size: 1.32rem;
+    }
+    .auth-mascot {
+        width: 54px;
+        height: 54px;
+        font-size: 1.8rem;
+    }
+}

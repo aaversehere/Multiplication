@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>PLAY MATCH MULTIPLICATION - Dunia Matematika Ceria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<audio id="backgroundAudio" loop autoplay muted src="audio/lagu_ceria.mp3"></audio>
+<input type="file" id="audioUpload" accept="audio/*" style="display:none;" onchange="handleAudioUpload(this)">
+
+<!-- ===================== COVER ===================== -->
+<section id="coverHome" class="cover" style="display:flex;">
+    <div class="cover-content">
+        <img src="Gemini_Generated_Image_5dfjmg5dfjmg5dfj-removebg-preview.png" alt="Happy Math" class="mascot-img">
+        <h1 class="title">PLAY MATCH<br>MULTIPLICATION</h1>
+        <p class="subtitle">Petualangan Memahami Perkalian!</p>
+        <button class="btn-start" onclick="enterHome()">👉 MULAI</button>
+    </div>
+</section>
+
+<!-- ===================== AUTH PAGE ===================== -->
+<section id="authPage" class="page auth-page" style="display:none;">
+    <!-- LOGIN -->
+    <div id="loginForm" class="auth-card">
+        <div class="auth-header">
+            <div class="auth-mascot-wrapper">
+                <div class="auth-mascot">🧮</div>
+            </div>
+            <h2>Masuk ke MathWorld!</h2>
+            <p>Halo, Pejuang Matematika! 👋</p>
+        </div>
+        <div class="auth-body">
+            <div class="auth-alert auth-alert-error" id="loginErr"></div>
+            <div class="auth-field">
+                <label for="loginUser"><span>👤</span> Username</label>
+                <input type="text" id="loginUser" placeholder="Masukkan username kamu" autocomplete="off">
+            </div>
+            <div class="auth-field">
+                <label for="loginPass"><span>🔒</span> Password</label>
+                <div class="pw-wrap">
+                    <input type="password" id="loginPass" placeholder="Masukkan password">
+                    <button type="button" class="pw-eye" onclick="togglePw('loginPass', this)" title="Lihat password" aria-label="Lihat password">
+                        <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            </div>
+            <button class="btn-auth-primary" id="loginBtn" onclick="doLogin()">🚀 Masuk Sekarang!</button>
+            <div class="auth-links">
+                <p>Belum punya akun? <span class="link-text" onclick="switchAuth('registerForm')">Daftar di sini</span></p>
+                <p><span class="link-text" onclick="switchAuth('forgotForm')">Lupa password?</span></p>
+            </div>
+            <div class="auth-back">
+                <button type="button" class="btn-back-cover" onclick="backToCover()">← Kembali ke Layar Awal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="registerForm" class="auth-card" style="display:none;">
+        <div class="auth-header">
+            <div class="auth-mascot-wrapper">
+                <div class="auth-mascot">✏️</div>
+            </div>
+            <h2>Daftar Akun Baru!</h2>
+            <p>Yuk, bergabung dan belajar bersama! 🌟</p>
+        </div>
+        <div class="auth-body">
+            <div class="auth-alert auth-alert-error" id="regErr"></div>
+            <div class="auth-alert auth-alert-success" id="regSuc"></div>
+            <div class="auth-field">
+                <label for="regName"><span>📛</span> Nama Lengkap</label>
+                <input type="text" id="regName" placeholder="Nama lengkap kamu" autocomplete="off">
+            </div>
+            <div class="auth-field">
+                <label for="regUser"><span>👤</span> Username</label>
+                <input type="text" id="regUser" placeholder="Buat username unik" autocomplete="off">
+            </div>
+            <div class="auth-field">
+                <label for="regPass"><span>🔒</span> Password</label>
+                <div class="pw-wrap">
+                    <input type="password" id="regPass" placeholder="Minimal 4 karakter">
+                    <button type="button" class="pw-eye" onclick="togglePw('regPass', this)" title="Lihat password" aria-label="Lihat password">
+                        <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="auth-field">
+                <label for="regPass2"><span>🔒</span> Konfirmasi Password</label>
+                <div class="pw-wrap">
+                    <input type="password" id="regPass2" placeholder="Ketik ulang password">
+                    <button type="button" class="pw-eye" onclick="togglePw('regPass2', this)" title="Lihat password" aria-label="Lihat password">
+                        <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            </div>
+            <button class="btn-auth-primary" id="regBtn" onclick="doRegister()">🎉 Daftar Sekarang!</button>
+            <div class="auth-links">
+                <p>Sudah punya akun? <span class="link-text" onclick="switchAuth('loginForm')">Masuk di sini</span></p>
+            </div>
+            <div class="auth-back">
+                <button type="button" class="btn-back-cover" onclick="backToCover()">← Kembali ke Layar Awal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD -->
+    <div id="forgotForm" class="auth-card" style="display:none;">
+        <div class="auth-header">
+            <div class="auth-mascot-wrapper">
+                <div class="auth-mascot">🔑</div>
+            </div>
+            <h2>Lupa Password?</h2>
+            <p>Tenang, kita bantu pulihkan! 💪</p>
+        </div>
+        <div class="auth-body">
+            <div class="auth-alert auth-alert-error" id="forgotErr"></div>
+            <div class="auth-alert auth-alert-success" id="forgotSuc"></div>
+            <div id="forgotStep1">
+                <p class="step-badge">Langkah 1 dari 2 — Verifikasi Identitas</p>
+                <div class="auth-field">
+                    <label for="forgotUser"><span>👤</span> Username</label>
+                    <input type="text" id="forgotUser" placeholder="Masukkan username kamu" autocomplete="off">
+                </div>
+                <div class="auth-field">
+                    <label for="forgotName"><span>📛</span> Nama Lengkap</label>
+                    <input type="text" id="forgotName" placeholder="Nama lengkap saat daftar">
+                </div>
+                <button class="btn-auth-primary" id="verifyBtn" onclick="doVerify()">🔍 Verifikasi</button>
+            </div>
+            <div id="forgotStep2" style="display:none;">
+                <p class="step-badge">Langkah 2 dari 2 — Password Baru</p>
+                <div class="auth-field">
+                    <label for="newPass"><span>🔒</span> Password Baru</label>
+                    <div class="pw-wrap">
+                        <input type="password" id="newPass" placeholder="Minimal 4 karakter">
+                        <button type="button" class="pw-eye" onclick="togglePw('newPass', this)" title="Lihat password" aria-label="Lihat password">
+                            <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="newPass2"><span>🔒</span> Konfirmasi Password Baru</label>
+                    <div class="pw-wrap">
+                        <input type="password" id="newPass2" placeholder="Ketik ulang password baru">
+                        <button type="button" class="pw-eye" onclick="togglePw('newPass2', this)" title="Lihat password" aria-label="Lihat password">
+                            <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                </div>
+                <button class="btn-auth-primary" id="resetBtn" onclick="doResetPw()">✅ Simpan Password</button>
+            </div>
+            <div class="auth-links">
+                <p><span class="link-text" onclick="switchAuth('loginForm')">Kembali ke Login</span></p>
+            </div>
+            <div class="auth-back">
+                <button type="button" class="btn-back-cover" onclick="backToCover()">← Kembali ke Layar Awal</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== SCORE BOX ===================== -->
+<div id="scoreBox" style="display:none;">
+    ⭐ Skor: <span id="score">0</span>
+</div>
+
+<!-- ===================== HEADER ===================== -->
+<header id="mainHeader" style="display:none;">
+    <div class="logo-area">
+        <img src="https://cdn-icons-png.flaticon.com/512/3209/3209265.png" alt="Logo" style="height:40px; margin:0;">
+        <span>MathWorld</span>
+    </div>
+    <nav>
+        <a onclick="showPage('home')">🏠 Home</a>
+        <a onclick="showPage('gameMenu')">🎮 Game</a>
+        <a onclick="showPage('teach')">📚 Guru</a>
+        <a onclick="showPage('quizMenu')">📝 Latihan</a>
+        <a onclick="showPage('about')">ℹ️ Info</a>
+    </nav>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <span id="headerUser" style="font-size:0.78rem;color:var(--hijau-tua);font-weight:bold;"></span>
+        <button class="btn-setting" onclick="showPage('settings')">⚙️</button>
+    </div>
+</header>
+
+<!-- ===================== HOME ===================== -->
+<section id="home" class="page" style="display:none;">
+    <div class="page-header">
+        <h2>🏠 Markas</h2>
+        <p>Pilih aktivitas serumu hari ini!</p>
+    </div>
+    <div class="menu-grid">
+        <div class="menu-card color-1" onclick="showPage('gameMenu')">
+            <img src="icon_game_edukasi.png" alt="Games Edukasi">
+            <h3>Games Edukasi</h3>
+        </div>
+        <div class="menu-card color-2" onclick="showPage('teach')">
+            <img src="icon_modul_guru.png" alt="Modul Guru">
+            <h3>Modul Guru</h3>
+        </div>
+        <div class="menu-card color-3" onclick="showPage('quizMenu')">
+            <img src="icon_latihan_soal.png" alt="Latihan Soal">
+            <h3>Latihan Soal</h3>
+        </div>
+        <div class="menu-card color-4" onclick="showPage('module')">
+            <img src="icon_modul_interaktif.png" alt="Modul Interaktif">
+            <h3>Modul Interaktif</h3>
+        </div>
+        <div class="menu-card color-5" onclick="showPage('media')">
+            <img src="icon_kantong_ajaib.png" alt="Kantong Ajaib">
+            <h3>Kantong Ajaib</h3>
+        </div>
+        <div class="menu-card color-6" onclick="showPage('video')">
+            <img src="icon_video.png" alt="Video">
+            <h3>Video</h3>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== SETTINGS ===================== -->
+<section id="settings" class="page" style="display:none;">
+    <h2>⚙️ Pengaturan</h2>
+    <div class="setting-group">
+        <h3>🎵 Musik Latar</h3>
+        <label class="switch-control">
+            <input type="checkbox" id="musicToggle" onchange="toggleMusic()">
+            <span class="slider round"></span>
+        </label>
+        <span id="musicStatus" style="margin-left:10px;">Mati</span>
+    </div>
+    <div class="setting-group">
+        <h3>📂 Upload Lagu Sendiri</h3>
+        <button class="btn-action" onclick="document.getElementById('audioUpload').click()">Pilih File MP3</button>
+        <p id="audioFileName">Menggunakan audio bawaan.</p>
+    </div>
+    <div class="setting-group" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <h3>👤 Akun</h3>
+        <p id="settingUserInfo" style="color:var(--hijau-tua);font-weight:bold;"></p>
+        <button class="btn-back" onclick="doLogout()" style="margin-top:0;">🚪 Keluar Akun</button>
+    </div>
+    <button class="btn-back" onclick="showPage('home')">⬅️ Kembali</button>
+</section>
+
+<!-- ===================== GAME MENU ===================== -->
+<section id="gameMenu" class="page" style="display:none;">
+    <h2>🎮 Pilih Permainan</h2>
+    <div class="game-list-grid">
+        <button class="game-btn" onclick="openLevelMenu('game1')">
+            <span class="emoji">🚀</span><span>Tebak Cepat (30s)</span>
+        </button>
+        <button class="game-btn" onclick="openLevelMenu('game2')">
+            <span class="emoji">📚</span><span>Cerita Bergambar</span>
+        </button>
+        <button class="game-btn" onclick="openLevelMenu('game4')">
+            <span class="emoji">🏎️</span><span>Tarik Tambang (2P)</span>
+        </button>
+        <button class="game-btn" onclick="openLevelMenu('game3')">
+            <span class="emoji">🚗</span><span>Mobil Maju</span>
+        </button>
+    </div>
+    <button class="btn-back" onclick="showPage('home')">⬅️ Kembali</button>
+</section>
+
+<!-- ===================== LEVEL MENU ===================== -->
+<section id="levelMenu" class="page" style="display:none; text-align:center;">
+    <h2 id="levelTitle">Pilih Tantangan!</h2>
+    <div class="level-box">
+        <button class="lvl-btn easy" onclick="startLevel('easy')">🌱 EASY (Mudah)</button>
+        <button class="lvl-btn medium" onclick="startLevel('medium')">🌿 MEDIUM (Sedang)</button>
+        <button class="lvl-btn hard" onclick="startLevel('hard')">🌳 HARD (Sulit)</button>
+    </div>
+    <button class="btn-back" onclick="showPage('gameMenu')">⬅️ Batal</button>
+</section>
+
+<!-- ===================== GAME CONTAINER ===================== -->
+<section id="gameContainer" class="page" style="display:none;">
+    <div id="timerBox">⏳ 00:00</div>
+    <h2 id="gameTitle" style="font-size:1.5rem;">Game Mulai!</h2>
+    <img id="gameImage" src="" style="display:none; max-height:200px; border-radius:15px; margin:10px auto;" alt="Ilustrasi">
+    <div id="storyBox"></div>
+    <div id="carArea"></div>
+    <div id="questionBox">? x ?</div>
+    <div id="answerBox"></div>
+    <button class="btn-back" onclick="showPage('gameMenu')" style="margin-top:20px;">🏳️ Menyerah / Kembali</button>
+</section>
+
+<!-- ===================== QUIZ MENU ===================== -->
+<section id="quizMenu" class="page" style="display:none;">
+    <h2>📝 Latihan Soal</h2>
+    <p style="margin:15px 0 20px;">Ayo berlatih <strong>30 soal campuran</strong> (Cerita, Gambar, &amp; Angka)!</p>
+    <div class="level-box">
+        <button class="lvl-btn easy" onclick="startQuiz30('easy')">🌱 EASY (Perkalian 1–5)</button>
+        <button class="lvl-btn medium" onclick="startQuiz30('medium')">🌿 MEDIUM (Perkalian 1–9)</button>
+        <button class="lvl-btn hard" onclick="startQuiz30('hard')">🌳 HARD (Perkalian 1–12)</button>
+    </div>
+    <button class="btn-back" onclick="showPage('home')">Kembali</button>
+</section>
+
+<!-- ===================== QUIZ ===================== -->
+<section id="quiz" class="page" style="display:none;">
+    <div class="quiz-header-bar">
+        <h2 id="quizTitle">Kuis Matematika</h2>
+        <div id="quizProgress">Soal 1 / 30</div>
+        <div id="quizScore">Skor: 0</div>
+    </div>
+    <div id="quizContainer"></div>
+    <div id="quizNav" style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+        <button onclick="prevQuiz30()" class="btn-action" id="prevBtn30" style="display:none;">⬅️ Sebelumnya</button>
+        <button onclick="nextQuiz30()" class="btn-action" id="nextBtn30">Selanjutnya ➡️</button>
+        <button onclick="finishQuiz30()" class="btn-back" id="finishQuizBtn30" style="display:none;">✅ Selesai</button>
+    </div>
+</section>
+
+<!-- ===================== TEACH ===================== -->
+<section id="teach" class="page" style="display:none;">
+    <h2>📚 Modul Ajar (Guru)</h2>
+    <div class="upload-area">
+        <p>Upload RPP / Materi Anda di sini:</p>
+        <input type="file" id="rppUpload">
+        <button class="btn-action" onclick="handleRppUpload()">📤 Unggah File</button>
+    </div>
+    <button class="btn-back" onclick="showPage('home')">Kembali</button>
+</section>
+
+<!-- ===================== MODULE ===================== -->
+<section id="module" class="page" style="display:none;">
+    <h2>📘 E-Book Interaktif</h2>
+    <div id="moduleContent"><p>Konten modul sedang dimuat...</p></div>
+    <button class="btn-back" onclick="showPage('home')">Kembali</button>
+</section>
+
+<!-- ===================== MEDIA ===================== -->
+<section id="media" class="page" style="display:none;">
+    <h2>✂️ Kantong Perkalian</h2>
+    <p>Simulasi media ajar visual.</p>
+    <div id="containerSimulation" style="min-height:200px; background:#f0f0f0; border-radius:10px;"></div>
+    <button class="btn-back" onclick="showPage('home')">Kembali</button>
+</section>
+
+<!-- ===================== VIDEO ===================== -->
+<section id="video" class="page" style="display:none;">
+    <h2>▶️ Bioskop Belajar</h2>
+    <p style="text-align:center; margin-bottom:15px;">Tonton video ini biar makin paham!</p>
+    <div class="video-responsive">
+        <video controls style="width:100%;height:100%;border-radius:16px;">
+            <source src="Petualangan di Hutan Ajaib Perkalian Kelas 3 SD (FASE B) - KURMER - Nabila Indah Sari (1080p, h264).mp4" type="video/mp4">
+            Browser kamu tidak mendukung video.
+        </video>
+    </div>
+    <button class="btn-back" onclick="showPage('home')">⬅️ Kembali</button>
+</section>
+
+<!-- ===================== ABOUT ===================== -->
+<section id="about" class="page" style="display:none;">
+    <h2>ℹ️ Tentang Aplikasi</h2>
+    <p>Dibuat dengan ❤️ untuk anak-anak Indonesia.</p>
+    <h3 style="margin-top:20px;">🏆 Riwayat Pemain:</h3>
+    <ul id="playerHistory" style="text-align:left; font-size:0.9rem; margin-top:10px;"></ul>
+    <button class="btn-back" onclick="deletePlayerHistory()" style="background:#ff7675;">Hapus Data Pemain</button>
+    <button class="btn-back" onclick="showPage('home')">Kembali</button>
+</section>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script>
+    // Audio & UI helpers — satu deklarasi saja
+    var _audioPlayer = document.getElementById('backgroundAudio');
+    var _musicToggle = document.getElementById('musicToggle');
+    var _musicStatus = document.getElementById('musicStatus');
+    var _audioFileName = document.getElementById('audioFileName');
+
+    if (_audioPlayer) _audioPlayer.volume = 0.3;
+
+    function toggleMusic() {
+        if (!_audioPlayer) return;
+        if (_musicToggle.checked) {
+            _audioPlayer.muted = false;
+            _musicStatus.textContent = 'Nyala';
+            _audioPlayer.play().catch(() => {});
+        } else {
+            _audioPlayer.muted = true;
+            _musicStatus.textContent = 'Mati';
+        }
+    }
+
+    function handleAudioUpload(input) {
+        var file = input.files[0];
+        if (file) {
+            _audioPlayer.src = URL.createObjectURL(file);
+            _audioPlayer.muted = false;
+            _audioPlayer.play();
+            _musicToggle.checked = true;
+            _musicStatus.textContent = 'Nyala';
+            _audioFileName.textContent = 'File: ' + file.name;
+        }
+    }
+
+    function enterHome() {
+        if (_audioPlayer && _audioPlayer.muted) {
+            _audioPlayer.muted = false;
+            if (_musicToggle) _musicToggle.checked = true;
+            if (_musicStatus) _musicStatus.textContent = 'Nyala';
+            _audioPlayer.play().catch(() => {});
+        }
+        document.getElementById('coverHome').style.display = 'none';
+        var user = sessionStorage.getItem('skripsi_user');
+        if (user) { showMainApp(); } else { showAuthPage(); }
+    }
+
+    function showAuthPage() {
+        document.getElementById('mainHeader').style.display = 'none';
+        document.getElementById('coverHome').style.display = 'none';
+        document.getElementById('authPage').style.display = 'block';
+        document.body.classList.add('in-auth');
+        if (typeof switchAuth === 'function') switchAuth('loginForm');
+    }
+
+    function showMainApp() {
+        document.body.classList.remove('in-auth');
+        document.getElementById('authPage').style.display = 'none';
+        document.getElementById('mainHeader').style.display = 'flex';
+        var u = JSON.parse(sessionStorage.getItem('skripsi_user') || '{}');
+        var hu = document.getElementById('headerUser');
+        if (hu) hu.textContent = '👤 ' + (u.fullname || u.username || '');
+        var si = document.getElementById('settingUserInfo');
+        if (si) si.textContent = 'Login sebagai: ' + (u.fullname || u.username || '');
+        if (typeof showPage === 'function') showPage('home');
+    }
+
+    function backToCover() {
+        document.body.classList.remove('in-auth');
+        document.getElementById('authPage').style.display = 'none';
+        document.getElementById('coverHome').style.display = 'flex';
+    }
+</script>
+
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

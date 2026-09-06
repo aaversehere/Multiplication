@@ -1,0 +1,19 @@
+{
+  "name": "play-match-multiplication",
+  "version": "1.0.0",
+  "description": "Media Pembelajaran Interaktif Perkalian Matematika SD",
+  "scripts": {
+    "start": "serve .",
+    "dev": "serve ."
+  },
+  "keywords": [
+    "skripsi",
+    "matematika",
+    "game-edukasi"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "serve": "^14.2.6"
+  }
+}
