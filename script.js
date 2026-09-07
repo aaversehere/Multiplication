@@ -277,8 +277,21 @@ function showPage(id){
         initializeMultiplicationPocket();
     } else if (id === 'module') {
         showModuleMenu();
+    } else if (id === 'about') {
+        renderPlayerHistory();
     }
     
+    // Highlight active nav item and scroll into view smoothly
+    document.querySelectorAll('#mainHeader nav a').forEach(a => {
+        const fnStr = a.getAttribute('onclick') || '';
+        if (fnStr.includes("'" + id + "'") || fnStr.includes('"' + id + '"')) {
+            a.classList.add('active');
+            a.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+            a.classList.remove('active');
+        }
+    });
+
     window.scrollTo({top:0,behavior:"smooth"});
 }
 window.showPage = showPage;
@@ -1070,7 +1083,16 @@ const pw = document.getElementById('regPass').value;
     if (pw !== pw2) { showAuthAlert('regErr','Password dan konfirmasi tidak cocok!','error'); return; }
 
     if (!db) {
-        showAuthAlert('regErr', 'Supabase belum terhubung! ' + (window.supabaseError || 'Isi ANON KEY di config.js'), 'error');
+        // Fallback offline via localStorage
+        const users = JSON.parse(localStorage.getItem('skripsi_users') || '[]');
+        if (users.find(x => x.username.toLowerCase() === un.toLowerCase())) {
+            showAuthAlert('regErr', 'Username sudah digunakan!', 'error');
+            return;
+        }
+        users.push({ fullname: fn, username: un, password: pw, created_at: new Date().toISOString() });
+        localStorage.setItem('skripsi_users', JSON.stringify(users));
+        showAuthAlert('regSuc', 'Daftar berhasil (Mode Lokal)! Silakan login.', 'success');
+        setTimeout(() => switchAuth('loginForm'), 1500);
         return;
     }
     btn.disabled = true; btn.textContent = '⏳ Mendaftar...';
@@ -1100,7 +1122,15 @@ async function doLogin() {
     if (!un || !pw) { showAuthAlert('loginErr','Username dan password harus diisi!','error'); return; }
 
     if (!db) {
-        showAuthAlert('loginErr', 'Supabase belum terhubung! ' + (window.supabaseError || 'Isi ANON KEY di config.js'), 'error');
+        // Fallback offline via localStorage
+        const users = JSON.parse(localStorage.getItem('skripsi_users') || '[]');
+        const u = users.find(x => x.username.toLowerCase() === un.toLowerCase() && x.password === pw);
+        if (!u) {
+            showAuthAlert('loginErr', 'Username atau password salah!', 'error');
+            return;
+        }
+        sessionStorage.setItem('skripsi_user', JSON.stringify({ username: u.username, fullname: u.fullname }));
+        showMainApp();
         return;
     }
     btn.disabled=true; btn.textContent='⏳ Masuk...';
@@ -1482,3 +1512,68 @@ async function finishQuiz30() {
     if (player) saveScoreToPlayer(player, "Latihan Soal 30", quiz30Level, quiz30Score);
 }
 window.finishQuiz30 = finishQuiz30;
+
+// =========================================================================
+// Horizontal Scroll Handler for #mainHeader (Mouse Drag, Touch & Wheel)
+// =========================================================================
+(function setupHeaderScroll() {
+    function init() {
+        const header = document.getElementById('mainHeader');
+        if (!header) return;
+
+        // Mouse wheel horizontal scroll over header
+        header.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0) {
+                e.preventDefault();
+                header.scrollLeft += e.deltaY;
+            }
+        }, { passive: false });
+
+        // Click & drag to scroll (convenient on desktop / devtools)
+        let isDown = false;
+        let startX = 0;
+        let scrollLeftPos = 0;
+        let hasDragged = false;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            isDown = true;
+            hasDragged = false;
+            startX = e.pageX - header.offsetLeft;
+            scrollLeftPos = header.scrollLeft;
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDown) {
+                isDown = false;
+                setTimeout(() => { hasDragged = false; }, 50);
+            }
+        });
+
+        header.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            const x = e.pageX - header.offsetLeft;
+            const walk = (x - startX);
+            if (Math.abs(walk) > 4) {
+                hasDragged = true;
+                e.preventDefault();
+                header.scrollLeft = scrollLeftPos - walk;
+            }
+        });
+
+        // Prevent link activation when dragging
+        header.addEventListener('click', (e) => {
+            if (hasDragged) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+

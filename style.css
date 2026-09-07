@@ -114,9 +114,36 @@ button:active {
     z-index: 1000;
     
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 0 20px;
+    gap: 14px;
+
+    /* Horizontal scroll baris menu (bisa discroll ke pinggir) */
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
+
+    --scrollbar-thumb: var(--hijau-sage);
+    --scrollbar-track: transparent;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+}
+
+/* Scrollbar styling halus untuk Chrome/Safari */
+#mainHeader::-webkit-scrollbar {
+    height: 4px;
+}
+
+#mainHeader::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#mainHeader::-webkit-scrollbar-thumb {
+    background: var(--hijau-sage);
+    border-radius: 4px;
 }
 
 .logo-area {
@@ -126,11 +153,16 @@ button:active {
     font-family: var(--font-judul);
     font-size: 1.2rem;
     color: var(--hijau-tua);
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
 }
 
 #mainHeader nav {
     display: flex;
     gap: 10px;
+    flex-shrink: 0;
+    align-items: center;
 }
 
 #mainHeader nav a {
@@ -142,6 +174,10 @@ button:active {
     background: var(--krem-pasir);
     font-size: 0.9rem;
     transition: 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
 }
 
 #mainHeader nav a:hover {
@@ -149,9 +185,25 @@ button:active {
     color: white;
 }
 
+#mainHeader nav a.active {
+    background: var(--hijau-tua);
+    color: white;
+}
+
+.header-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-right: 6px;
+}
+
 .btn-setting {
     background: transparent;
     font-size: 1.5rem;
+    flex-shrink: 0;
+    cursor: pointer;
 }
 
 /* ============================
@@ -641,12 +693,37 @@ input:checked + .slider:before { transform: translateX(26px); }
     body { padding-top: 70px; }
     
     #mainHeader { 
-        padding: 0 15px; 
+        padding: 0 12px;
+        gap: 10px;
+        height: 65px;
     }
-    
+
+    .logo-area {
+        font-size: 1.05rem;
+        gap: 6px;
+    }
+
+    .logo-area img {
+        height: 32px !important;
+    }
+
+    #mainHeader nav {
+        gap: 8px;
+    }
+
     #mainHeader nav a {
-        padding: 5px 10px;
-        font-size: 0.8rem;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        border-radius: 16px;
+    }
+
+    .header-right {
+        gap: 6px;
+        padding-right: 8px;
+    }
+
+    .btn-setting {
+        font-size: 1.3rem;
     }
 
     .cover-content { 

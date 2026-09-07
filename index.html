@@ -171,7 +171,7 @@
 
 <!-- ===================== HEADER ===================== -->
 <header id="mainHeader" style="display:none;">
-    <div class="logo-area">
+    <div class="logo-area" onclick="showPage('home')">
         <img src="https://cdn-icons-png.flaticon.com/512/3209/3209265.png" alt="Logo" style="height:40px; margin:0;">
         <span>MathWorld</span>
     </div>
@@ -182,7 +182,7 @@
         <a onclick="showPage('quizMenu')">📝 Latihan</a>
         <a onclick="showPage('about')">ℹ️ Info</a>
     </nav>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div class="header-right" style="display:flex;gap:8px;align-items:center;">
         <span id="headerUser" style="font-size:0.78rem;color:var(--hijau-tua);font-weight:bold;"></span>
         <button class="btn-setting" onclick="showPage('settings')">⚙️</button>
     </div>
