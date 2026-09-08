@@ -238,7 +238,10 @@ function clearGameArea(){
     // Clear elements
     ['questionBox', 'answerBox', 'storyBox', 'carArea', 'timerBox'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.innerHTML = "";
+        if (el) {
+            el.innerHTML = "";
+            el.classList.remove('tug-active-box');
+        }
     });
     const img = document.getElementById("gameImage");
     if(img) { img.src = ""; img.style.display = 'none'; }
@@ -253,6 +256,15 @@ function clearGameArea(){
 function showPage(id){
     clearGameArea(); 
     
+    // Hentikan pemutaran video dan sinkronkan audio saat berpindah halaman
+    if (id !== 'video' && typeof window.handleLeavingVideoPage === 'function') {
+        window.handleLeavingVideoPage();
+    } else {
+        document.querySelectorAll("video").forEach(v => {
+            if (!v.paused) v.pause();
+        });
+    }
+
     document.querySelectorAll(".page").forEach(p => p.style.display = 'none');
     
     if (id === 'levelMenu' && selectedGame) {
@@ -267,7 +279,7 @@ function showPage(id){
     if(el) el.style.display = 'block';
     
     const scoreBox = document.getElementById('scoreBox');
-    if (id === 'gameContainer') {
+    if (id === 'gameContainer' && selectedGame !== 'game4') {
          scoreBox.style.display = 'block';
     } else {
          scoreBox.style.display = 'none';
@@ -391,6 +403,10 @@ window.startLevelInJS = function(level){
         showPage("gameContainer");
         const titleMap = { game1: "🎮 Tebak Perkalian (30s)", game2: "📖 Cerita Bergambar", game3: "🚗 Mobil Maju", game4: "🏁 Tarik Tambang" };
         document.getElementById("gameTitle").textContent = titleMap[selectedGame] || "Game";
+        const scoreBox = document.getElementById('scoreBox');
+        if (scoreBox) {
+            scoreBox.style.display = (selectedGame === 'game4') ? 'none' : 'block';
+        }
         startSelectedGame();
     }
 };
@@ -576,32 +592,38 @@ function startGameRace(){
     alert("Mode 2 Pemain: Player 1 (Kiri) vs Player 2 (Kanan). Jawab cepat untuk menarik tali!");
     ropePosition = 50; 
     
+    // Pastikan scoreBox tidak muncul di mode 2 Player
+    const scoreBox = document.getElementById("scoreBox");
+    if (scoreBox) scoreBox.style.display = "none";
+
     const container = document.getElementById("questionBox"); 
+    if (container) container.classList.add("tug-active-box");
+
     container.innerHTML = `
-        <div id="tugOfWarContainer" style="display:flex; flex-direction:column; gap:20px; width:100%;">
-            
-            <div style="position:relative; width:100%; height:60px; background:#ddd; border-radius:30px; overflow:hidden; border: 3px solid #999;">
-                <div style="position:absolute; left:0; top:0; bottom:0; width:50%; background:#FF8A80; opacity:0.3; z-index:1;"></div>
-                <div style="position:absolute; right:0; top:0; bottom:0; width:50%; background:#80D8FF; opacity:0.3; z-index:1;"></div>
-                
-                <div id="ropeMarker" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); width:40px; height:40px; background:#333; border-radius:50%; border:4px solid white; z-index:10; transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                    <div style="width:200px; height:6px; background:#8D6E63; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:-1;"></div>
+        <div id="tugOfWarContainer">
+            <!-- Lintasan Tarik Tambang -->
+            <div class="tug-rope-track">
+                <div class="tug-track-left">🚩 MERAH</div>
+                <div class="tug-track-right">BIRU 🚩</div>
+                <div id="ropeMarker" class="tug-rope-marker" style="left:50%;">
+                    <div class="tug-rope-line"></div>
                 </div>
             </div>
-            <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                <span style="color:#D32F2F;">PLAYER 1 (MERAH)</span>
-                <span style="color:#0288D1;">PLAYER 2 (BIRU)</span>
-            </div>
 
-            <div style="display:flex; gap:10px;">
-                <div id="p1Panel" style="flex:1; background:#FFEBEE; padding:10px; border-radius:10px; border:2px solid #FFCDD2; text-align:center;">
-                    <div id="p1Question" style="font-size:1.5rem; font-weight:bold; margin-bottom:10px; color:#D32F2F;">...</div>
-                    <div id="p1Options" style="display:grid; grid-template-columns:1fr 1fr; gap:5px;"></div>
+            <!-- Panel 2 Pemain -->
+            <div class="tug-panels-wrap">
+                <!-- Pemain 1 (Merah) -->
+                <div id="p1Panel" class="tug-panel tug-panel-p1">
+                    <div class="tug-player-badge p1-badge">🔴 Player 1 (Merah)</div>
+                    <div id="p1Question" class="tug-question-text p1-question-color">...</div>
+                    <div id="p1Options" class="tug-options-grid"></div>
                 </div>
 
-                <div id="p2Panel" style="flex:1; background:#E1F5FE; padding:10px; border-radius:10px; border:2px solid #B3E5FC; text-align:center;">
-                    <div id="p2Question" style="font-size:1.5rem; font-weight:bold; margin-bottom:10px; color:#0288D1;">...</div>
-                    <div id="p2Options" style="display:grid; grid-template-columns:1fr 1fr; gap:5px;"></div>
+                <!-- Pemain 2 (Biru) -->
+                <div id="p2Panel" class="tug-panel tug-panel-p2">
+                    <div class="tug-player-badge p2-badge">🔵 Player 2 (Biru)</div>
+                    <div id="p2Question" class="tug-question-text p2-question-color">...</div>
+                    <div id="p2Options" class="tug-options-grid"></div>
                 </div>
             </div>
         </div>
@@ -618,9 +640,9 @@ function updateRopeVisual() {
     if(marker) marker.style.left = `${ropePosition}%`;
 
     if(ropePosition <= 10) {
-        setTimeout(() => { alert("🏆 PLAYER 1 MENANG!"); showPage("gameMenu"); }, 300);
+        setTimeout(() => { alert("🏆 PLAYER 1 (MERAH) MENANG!"); showPage("gameMenu"); }, 300);
     } else if(ropePosition >= 90) {
-        setTimeout(() => { alert("🏆 PLAYER 2 MENANG!"); showPage("gameMenu"); }, 300);
+        setTimeout(() => { alert("🏆 PLAYER 2 (BIRU) MENANG!"); showPage("gameMenu"); }, 300);
     }
 }
 
@@ -647,9 +669,7 @@ function nextRaceQuestion(playerSide) {
     opts.forEach(o => {
         const btn = document.createElement("button");
         btn.textContent = o;
-        btn.className = "jawabanBtn";
-        btn.style.fontSize = "1rem";
-        btn.style.padding = "8px";
+        btn.className = `tug-btn ${playerSide === 'p1' ? 'tug-btn-p1' : 'tug-btn-p2'}`;
         btn.onclick = () => {
             if(o === correct) {
                 playSound('correct');
@@ -659,10 +679,11 @@ function nextRaceQuestion(playerSide) {
                 nextRaceQuestion(playerSide); 
             } else {
                 playSound('wrong');
-                btn.style.background = "#ccc"; 
+                btn.style.opacity = "0.35";
+                btn.style.cursor = "not-allowed";
                 btn.disabled = true;
                 if(playerSide === 'p1') ropePosition += 2; 
-                else ropePosition -= 2;
+                else ropePosition -= 2; 
                 updateRopeVisual();
             }
         };

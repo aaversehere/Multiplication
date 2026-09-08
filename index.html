@@ -10,8 +10,7 @@
 </head>
 <body>
 
-<audio id="backgroundAudio" loop autoplay muted src="audio/lagu_ceria.mp3"></audio>
-<input type="file" id="audioUpload" accept="audio/*" style="display:none;" onchange="handleAudioUpload(this)">
+<audio id="backgroundAudio" loop autoplay muted src="audio/Lagu 1.mp3"></audio>
 
 <!-- ===================== COVER ===================== -->
 <section id="coverHome" class="cover" style="display:flex;">
@@ -194,6 +193,27 @@
         <h2>🏠 Markas</h2>
         <p>Pilih aktivitas serumu hari ini!</p>
     </div>
+
+    <!-- Bar Pemilih Backsound di Halaman Beranda -->
+    <div class="home-music-card">
+        <div class="home-music-left">
+            <span class="home-music-icon">🎵</span>
+            <span class="home-music-title">Backsound:</span>
+            <select id="homeBgmSelect" class="home-music-select" onchange="changeBgm(this.value)">
+                <option value="audio/Lagu 1.mp3">🎵 Lagu 1</option>
+                <option value="audio/Lagu 2.mp3">🎶 Lagu 2</option>
+                <option value="audio/Subway.mp3">🛹 Subway Surfers</option>
+                <option value="audio/lagu_ceria.mp3">✨ Lagu Ceria</option>
+            </select>
+        </div>
+        <div class="home-music-right">
+            <button id="homeMusicBtn" class="btn-home-music" onclick="toggleMusicFromHome()" title="Nyalakan/Matikan Musik">
+                <span id="homeMusicIcon">🔊</span>
+                <span id="homeMusicLabel">Musik Nyala</span>
+            </button>
+        </div>
+    </div>
+
     <div class="menu-grid">
         <div class="menu-card color-1" onclick="showPage('gameMenu')">
             <img src="icon_game_edukasi.png" alt="Games Edukasi">
@@ -227,16 +247,29 @@
     <h2>⚙️ Pengaturan</h2>
     <div class="setting-group">
         <h3>🎵 Musik Latar</h3>
-        <label class="switch-control">
-            <input type="checkbox" id="musicToggle" onchange="toggleMusic()">
-            <span class="slider round"></span>
-        </label>
-        <span id="musicStatus" style="margin-left:10px;">Mati</span>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <label class="switch-control">
+                <input type="checkbox" id="musicToggle" onchange="toggleMusic()">
+                <span class="slider round"></span>
+            </label>
+            <span id="musicStatus" style="font-weight:bold;min-width:45px;">Mati</span>
+        </div>
     </div>
     <div class="setting-group">
-        <h3>📂 Upload Lagu Sendiri</h3>
-        <button class="btn-action" onclick="document.getElementById('audioUpload').click()">Pilih File MP3</button>
-        <p id="audioFileName">Menggunakan audio bawaan.</p>
+        <h3>🎶 Pilih Backsound</h3>
+        <select id="bgmSelect" class="custom-music-select" onchange="changeBgm(this.value)">
+            <option value="audio/Lagu 1.mp3">🎵 Lagu 1</option>
+            <option value="audio/Lagu 2.mp3">🎶 Lagu 2</option>
+            <option value="audio/Subway.mp3">🛹 Subway Surfers</option>
+            <option value="audio/lagu_ceria.mp3">✨ Lagu Ceria</option>
+        </select>
+    </div>
+    <div class="setting-group">
+        <h3>🔊 Volume Suara</h3>
+        <div style="display:flex;align-items:center;gap:12px;width:100%;max-width:240px;">
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.3" oninput="changeVolume(this.value)" style="flex:1;accent-color:var(--hijau-sage);cursor:pointer;">
+            <span id="volumeStatus" style="font-size:0.95rem;font-weight:bold;color:var(--hijau-tua);min-width:38px;">30%</span>
+        </div>
     </div>
     <div class="setting-group" style="flex-direction:column;align-items:flex-start;gap:10px;">
         <h3>👤 Akun</h3>
@@ -347,7 +380,7 @@
     <h2>▶️ Bioskop Belajar</h2>
     <p style="text-align:center; margin-bottom:15px;">Tonton video ini biar makin paham!</p>
     <div class="video-responsive">
-        <video controls style="width:100%;height:100%;border-radius:16px;">
+        <video id="learningVideo" controls style="width:100%;height:100%;border-radius:16px;">
             <source src="Petualangan di Hutan Ajaib Perkalian Kelas 3 SD (FASE B) - KURMER - Nabila Indah Sari (1080p, h264).mp4" type="video/mp4">
             Browser kamu tidak mendukung video.
         </video>
@@ -367,49 +400,230 @@
 
 <!-- ===================== SCRIPTS ===================== -->
 <script>
-    // Audio & UI helpers — satu deklarasi saja
+    // Audio & UI helpers
     var _audioPlayer = document.getElementById('backgroundAudio');
     var _musicToggle = document.getElementById('musicToggle');
     var _musicStatus = document.getElementById('musicStatus');
-    var _audioFileName = document.getElementById('audioFileName');
+    var _wasAudioPlayingBeforeVideo = false;
 
-    if (_audioPlayer) _audioPlayer.volume = 0.3;
+    // Inisialisasi konfigurasi audio dari localStorage
+    var _savedBgm = localStorage.getItem('selected_bgm') || 'audio/Lagu 1.mp3';
+    var _savedVol = localStorage.getItem('bgm_volume') !== null ? localStorage.getItem('bgm_volume') : '0.3';
+    var _isMuted = localStorage.getItem('bgm_muted') === 'true';
 
-    function toggleMusic() {
+    if (_audioPlayer) {
+        _audioPlayer.src = _savedBgm;
+        _audioPlayer.volume = parseFloat(_savedVol);
+        _audioPlayer.muted = _isMuted;
+    }
+
+    function isAnyVideoPlaying() {
+        var videos = document.querySelectorAll('video');
+        for (var i = 0; i < videos.length; i++) {
+            if (!videos[i].paused && !videos[i].ended) return true;
+        }
+        return false;
+    }
+
+    function updateAudioUI() {
+        var isPlaying = _audioPlayer && !_audioPlayer.muted;
+        if (_musicToggle) _musicToggle.checked = isPlaying;
+        if (_musicStatus) _musicStatus.textContent = isPlaying ? 'Nyala' : 'Mati';
+
+        var bgmSelect = document.getElementById('bgmSelect');
+        var homeBgmSelect = document.getElementById('homeBgmSelect');
+        var currentSrc = _audioPlayer ? _audioPlayer.getAttribute('src') : _savedBgm;
+        if (bgmSelect && currentSrc) bgmSelect.value = currentSrc;
+        if (homeBgmSelect && currentSrc) homeBgmSelect.value = currentSrc;
+
+        var volSlider = document.getElementById('volumeSlider');
+        var volStatus = document.getElementById('volumeStatus');
+        var curVol = _audioPlayer ? _audioPlayer.volume : parseFloat(_savedVol);
+        if (volSlider) volSlider.value = curVol;
+        if (volStatus) volStatus.textContent = Math.round(curVol * 100) + '%';
+
+        var homeIcon = document.getElementById('homeMusicIcon');
+        var homeLabel = document.getElementById('homeMusicLabel');
+        var homeBtn = document.getElementById('homeMusicBtn');
+        if (homeIcon) homeIcon.textContent = isPlaying ? '🔊' : '🔇';
+        if (homeLabel) homeLabel.textContent = isPlaying ? 'Musik Nyala' : 'Musik Mati';
+        if (homeBtn) {
+            if (isPlaying) homeBtn.classList.add('playing');
+            else homeBtn.classList.remove('playing');
+        }
+    }
+
+    function toggleMusic(forcedState) {
         if (!_audioPlayer) return;
-        if (_musicToggle.checked) {
+        var willPlay = typeof forcedState === 'boolean' ? forcedState : (_musicToggle ? _musicToggle.checked : _audioPlayer.muted);
+        if (willPlay) {
             _audioPlayer.muted = false;
-            _musicStatus.textContent = 'Nyala';
-            _audioPlayer.play().catch(() => {});
+            localStorage.setItem('bgm_muted', 'false');
+            _wasAudioPlayingBeforeVideo = false;
+            // Hentikan video jika ada yang berjalan agar tidak tabrakan
+            document.querySelectorAll('video').forEach(function(v) {
+                if (!v.paused) v.pause();
+            });
+            _audioPlayer.play().catch(function() {});
         } else {
             _audioPlayer.muted = true;
-            _musicStatus.textContent = 'Mati';
+            localStorage.setItem('bgm_muted', 'true');
+            _wasAudioPlayingBeforeVideo = false;
+        }
+        updateAudioUI();
+    }
+
+    function toggleMusicFromHome() {
+        if (!_audioPlayer) return;
+        toggleMusic(_audioPlayer.muted);
+    }
+
+    function changeBgm(src) {
+        if (!_audioPlayer) return;
+        var wasPlaying = !_audioPlayer.muted;
+        _audioPlayer.src = src;
+        _audioPlayer.setAttribute('src', src);
+        localStorage.setItem('selected_bgm', src);
+
+        if (isAnyVideoPlaying()) {
+            _wasAudioPlayingBeforeVideo = true;
+        } else if (wasPlaying) {
+            _audioPlayer.play().catch(function() {});
+        }
+        updateAudioUI();
+    }
+
+    function changeVolume(val) {
+        if (!_audioPlayer) return;
+        var vol = parseFloat(val);
+        _audioPlayer.volume = vol;
+        localStorage.setItem('bgm_volume', vol.toString());
+        var volStatus = document.getElementById('volumeStatus');
+        if (volStatus) volStatus.textContent = Math.round(vol * 100) + '%';
+        var volSlider = document.getElementById('volumeSlider');
+        if (volSlider) volSlider.value = vol;
+    }
+
+    // ==========================================
+    // SINKRONISASI VIDEO & BACKSOUND (ANTI-TABRAKAN)
+    // ==========================================
+    var _wasAudioPlayingBeforeHidden = false;
+
+    function handleVideoPlay() {
+        if (_audioPlayer && !_audioPlayer.muted && !_audioPlayer.paused) {
+            _wasAudioPlayingBeforeVideo = true;
+            _audioPlayer.pause();
         }
     }
 
-    function handleAudioUpload(input) {
-        var file = input.files[0];
-        if (file) {
-            _audioPlayer.src = URL.createObjectURL(file);
-            _audioPlayer.muted = false;
-            _audioPlayer.play();
-            _musicToggle.checked = true;
-            _musicStatus.textContent = 'Nyala';
-            _audioFileName.textContent = 'File: ' + file.name;
+    function handleVideoPauseOrEnd() {
+        // Jangan aktifkan kembali backsound jika tab/browser sedang di latar belakang (hidden)
+        if (document.hidden) return;
+
+        if (!isAnyVideoPlaying() && _wasAudioPlayingBeforeVideo) {
+            _wasAudioPlayingBeforeVideo = false;
+            var isMuted = localStorage.getItem('bgm_muted') === 'true';
+            if (_audioPlayer && !isMuted && !_audioPlayer.muted) {
+                _audioPlayer.play().catch(function() {});
+            }
         }
     }
+
+    // Tangkap event play, pause, dan ended dari video mana saja
+    document.addEventListener('play', function(e) {
+        if (e.target && e.target.tagName === 'VIDEO') {
+            handleVideoPlay();
+        }
+    }, true);
+
+    document.addEventListener('pause', function(e) {
+        if (e.target && e.target.tagName === 'VIDEO') {
+            handleVideoPauseOrEnd();
+        }
+    }, true);
+
+    document.addEventListener('ended', function(e) {
+        if (e.target && e.target.tagName === 'VIDEO') {
+            handleVideoPauseOrEnd();
+        }
+    }, true);
+
+    // ==========================================
+    // AUTO-PAUSE SAAT KELUAR DARI WEB / GANTI TAB
+    // ==========================================
+    function pauseAllMediaOnExit() {
+        // 1. Hentikan pemutaran semua video saat keluar dari web / ganti tab / minimize
+        document.querySelectorAll('video').forEach(function(v) {
+            if (!v.paused) {
+                v.pause();
+            }
+        });
+
+        // 2. Hentikan juga backsound agar tidak berputar di belakang layar
+        if (_audioPlayer && !_audioPlayer.paused && !_audioPlayer.muted) {
+            _wasAudioPlayingBeforeHidden = true;
+            _audioPlayer.pause();
+        }
+    }
+
+    function resumeMediaOnReturn() {
+        // Saat kembali ke web/tab, lanjutkan backsound jika sebelumnya aktif dan tidak sedang menonton video
+        if (_wasAudioPlayingBeforeHidden && !isAnyVideoPlaying() && !_wasAudioPlayingBeforeVideo) {
+            _wasAudioPlayingBeforeHidden = false;
+            var isMuted = localStorage.getItem('bgm_muted') === 'true';
+            if (_audioPlayer && !isMuted && !_audioPlayer.muted) {
+                _audioPlayer.play().catch(function() {});
+            }
+        }
+    }
+
+    function handleLeavingVideoPage() {
+        // Hentikan video jika sedang berputar
+        document.querySelectorAll('video').forEach(function(v) {
+            if (!v.paused) v.pause();
+        });
+        // Jika backsound sebelumnya di-pause karena video, aktifkan kembali saat pindah halaman
+        if (_wasAudioPlayingBeforeVideo) {
+            _wasAudioPlayingBeforeVideo = false;
+            var isMuted = localStorage.getItem('bgm_muted') === 'true';
+            if (_audioPlayer && !isMuted && !_audioPlayer.muted) {
+                _audioPlayer.play().catch(function() {});
+            }
+        }
+    }
+    window.handleLeavingVideoPage = handleLeavingVideoPage;
+
+    // Event saat tab browser diminimize, pindah tab, atau layar ponsel terkunci
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            pauseAllMediaOnExit();
+        } else {
+            resumeMediaOnReturn();
+        }
+    });
+
+    // Event saat pengguna menutup tab, reload, atau keluar halaman
+    window.addEventListener('pagehide', pauseAllMediaOnExit);
+    window.addEventListener('beforeunload', pauseAllMediaOnExit);
 
     function enterHome() {
-        if (_audioPlayer && _audioPlayer.muted) {
-            _audioPlayer.muted = false;
-            if (_musicToggle) _musicToggle.checked = true;
-            if (_musicStatus) _musicStatus.textContent = 'Nyala';
-            _audioPlayer.play().catch(() => {});
+        if (_audioPlayer) {
+            var isMuted = localStorage.getItem('bgm_muted') === 'true';
+            if (!isMuted) {
+                _audioPlayer.muted = false;
+                _audioPlayer.play().catch(function() {});
+            }
+            updateAudioUI();
         }
         document.getElementById('coverHome').style.display = 'none';
         var user = sessionStorage.getItem('skripsi_user');
         if (user) { showMainApp(); } else { showAuthPage(); }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateAudioUI();
+    });
+    updateAudioUI();
 
     function showAuthPage() {
         document.getElementById('mainHeader').style.display = 'none';
