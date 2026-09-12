@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<audio id="backgroundAudio" loop autoplay muted src="audio/Lagu 1.mp3"></audio>
+<audio id="backgroundAudio" loop autoplay muted preload="auto" playsinline src="audio/Lagu 1.mp3"></audio>
 
 <!-- ===================== COVER ===================== -->
 <section id="coverHome" class="cover" style="display:flex;">
@@ -352,12 +352,24 @@
 <!-- ===================== TEACH ===================== -->
 <section id="teach" class="page" style="display:none;">
     <h2>📚 Modul Ajar (Guru)</h2>
-    <div class="upload-area">
-        <p>Upload RPP / Materi Anda di sini:</p>
-        <input type="file" id="rppUpload">
-        <button class="btn-action" onclick="handleRppUpload()">📤 Unggah File</button>
+    <div class="teacher-module">
+        <div class="teacher-module-actions">
+            <a href="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" target="_blank" rel="noopener" class="btn-action" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+                📥 Buka / Unduh PDF Lengkap
+            </a>
+        </div>
+        <div class="pdf-viewer">
+            <object data="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf#toolbar=1&navpanes=0" type="application/pdf" width="100%" height="100%">
+                <iframe src="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" style="width:100%; height:100%; border:none;" title="Modul Ajar Guru">
+                    <div style="padding: 30px; text-align: center;">
+                        <p style="font-size:1.1rem; color:var(--hijau-tua); margin-bottom:15px;">Modul Ajar siap dibaca!</p>
+                        <a href="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" target="_blank" rel="noopener" class="btn-action" style="text-decoration:none;">📖 Buka Dokumen Modul Ajar PDF</a>
+                    </div>
+                </iframe>
+            </object>
+        </div>
     </div>
-    <button class="btn-back" onclick="showPage('home')">Kembali</button>
+    <button class="btn-back" onclick="showPage('home')" style="margin-top:20px;">⬅️ Kembali</button>
 </section>
 
 <!-- ===================== MODULE ===================== -->
@@ -411,11 +423,43 @@
     var _savedVol = localStorage.getItem('bgm_volume') !== null ? localStorage.getItem('bgm_volume') : '0.3';
     var _isMuted = localStorage.getItem('bgm_muted') === 'true';
 
+    // Preload semua track backsound ke memory browser HP agar instan tanpa jeda/delay saat diputar
+    var _allBgmTracks = ['audio/Lagu 1.mp3', 'audio/Lagu 2.mp3', 'audio/lagu_ceria.mp3', 'audio/Subway.mp3'];
+    var _bgmPreloadCache = {};
+    _allBgmTracks.forEach(function(url) {
+        try {
+            var a = new Audio();
+            a.preload = 'auto';
+            a.src = url;
+            _bgmPreloadCache[url] = a;
+        } catch(e) {}
+    });
+
     if (_audioPlayer) {
+        _audioPlayer.preload = 'auto';
         _audioPlayer.src = _savedBgm;
         _audioPlayer.volume = parseFloat(_savedVol);
         _audioPlayer.muted = _isMuted;
+        _audioPlayer.load(); // Paksa browser mobile segera mendownload buffer awal
     }
+
+    // Buka kunci (unlock) audio context di HP pada sentuhan pertama agar audio langsung bersuara tanpa lag
+    function _unlockMobileAudio() {
+        if (_audioPlayer) {
+            var isMuted = localStorage.getItem('bgm_muted') === 'true';
+            if (!isMuted && _audioPlayer.paused && !isAnyVideoPlaying()) {
+                _audioPlayer.muted = false;
+                var p = _audioPlayer.play();
+                if (p && p.catch) p.catch(function() {});
+            }
+        }
+        document.removeEventListener('touchstart', _unlockMobileAudio);
+        document.removeEventListener('touchend', _unlockMobileAudio);
+        document.removeEventListener('click', _unlockMobileAudio);
+    }
+    document.addEventListener('touchstart', _unlockMobileAudio, { passive: true, once: true });
+    document.addEventListener('touchend', _unlockMobileAudio, { passive: true, once: true });
+    document.addEventListener('click', _unlockMobileAudio, { passive: true, once: true });
 
     function isAnyVideoPlaying() {
         var videos = document.querySelectorAll('video');
@@ -464,11 +508,13 @@
             document.querySelectorAll('video').forEach(function(v) {
                 if (!v.paused) v.pause();
             });
-            _audioPlayer.play().catch(function() {});
+            var p = _audioPlayer.play();
+            if (p && p.catch) p.catch(function() {});
         } else {
             _audioPlayer.muted = true;
             localStorage.setItem('bgm_muted', 'true');
             _wasAudioPlayingBeforeVideo = false;
+            _audioPlayer.pause();
         }
         updateAudioUI();
     }
@@ -480,15 +526,20 @@
 
     function changeBgm(src) {
         if (!_audioPlayer) return;
-        var wasPlaying = !_audioPlayer.muted;
-        _audioPlayer.src = src;
-        _audioPlayer.setAttribute('src', src);
-        localStorage.setItem('selected_bgm', src);
+        var wasPlaying = !_audioPlayer.muted && !_audioPlayer.paused;
+        var currentSrc = _audioPlayer.getAttribute('src');
+        if (currentSrc !== src) {
+            _audioPlayer.src = src;
+            _audioPlayer.setAttribute('src', src);
+            _audioPlayer.load(); // Segera inisiasi buffer tanpa delay di HP
+            localStorage.setItem('selected_bgm', src);
+        }
 
         if (isAnyVideoPlaying()) {
             _wasAudioPlayingBeforeVideo = true;
-        } else if (wasPlaying) {
-            _audioPlayer.play().catch(function() {});
+        } else if (wasPlaying || !_audioPlayer.muted) {
+            var p = _audioPlayer.play();
+            if (p && p.catch) p.catch(function() {});
         }
         updateAudioUI();
     }
@@ -611,7 +662,8 @@
             var isMuted = localStorage.getItem('bgm_muted') === 'true';
             if (!isMuted) {
                 _audioPlayer.muted = false;
-                _audioPlayer.play().catch(function() {});
+                var p = _audioPlayer.play();
+                if (p && p.catch) p.catch(function() {});
             }
             updateAudioUI();
         }
