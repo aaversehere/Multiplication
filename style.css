@@ -1311,6 +1311,122 @@ input:checked + .slider:before { transform: translateX(26px); }
 .opt30-correct { background: #A5D6A7 !important; border-color: #2E7D32 !important; color: #1B5E20 !important; box-shadow: 0 4px 0 #2E7D32 !important; }
 .opt30-wrong   { background: #FFCDD2 !important; border-color: #C62828 !important; color: #B71C1C !important; box-shadow: 0 4px 0 #C62828 !important; }
 
+/* Badge tipe soal (Isian / Pilihan Ganda) */
+.quiz30-mode-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.03em;
+}
+.badge-tulis {
+    background: #FFF3E0;
+    color: #E65100;
+    border: 1.5px solid #FFB74D;
+}
+.badge-pilih {
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1.5px solid #81C784;
+}
+
+/* Input area untuk soal isian */
+.quiz30-input-area {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+}
+
+.quiz30-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+}
+
+.quiz30-text-input {
+    width: 100%;
+    font-size: 1.6rem;
+    padding: 16px 20px;
+    border: 3px solid var(--coklat-kayu);
+    border-radius: 16px;
+    font-family: var(--font-judul);
+    text-align: center;
+    color: var(--hijau-tua);
+    background: white;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+    -moz-appearance: textfield;
+}
+.quiz30-text-input::-webkit-outer-spin-button,
+.quiz30-text-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.quiz30-text-input:focus {
+    border-color: var(--hijau-tua);
+    box-shadow: 0 0 0 3px rgba(85, 145, 140, 0.2);
+}
+
+.quiz30-submit-btn {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    border: 3px solid #3d7a72;
+    border-radius: 16px;
+    background: #55918c !important;
+    color: #ffffff !important;
+    cursor: pointer;
+    font-family: var(--font-judul);
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 0 #3d7a72;
+    white-space: nowrap;
+    box-sizing: border-box;
+    letter-spacing: 0.02em;
+}
+.quiz30-submit-btn:hover {
+    background: #4a8580 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #3d7a72;
+}
+.quiz30-submit-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 #3d7a72;
+}
+
+/* Hasil jawaban isian */
+.quiz30-input-result {
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    animation: slideUp 0.3s ease;
+}
+.input-result-correct {
+    background: #A5D6A7;
+    color: #1B5E20;
+    border: 3px solid #2E7D32;
+}
+.input-result-wrong {
+    background: #FFCDD2;
+    color: #B71C1C;
+    border: 3px solid #C62828;
+}
+.quiz30-input-answer {
+    font-size: 1.5rem;
+    font-family: var(--font-judul);
+}
+
 /* ============================================================
    RESPONSIVE TAMBAHAN
    ============================================================ */
@@ -1319,6 +1435,9 @@ input:checked + .slider:before { transform: translateX(26px); }
     .quiz30-opt-btn { font-size: 1.2rem; padding: 12px; }
     .story-emoji-cell { font-size: 1.4rem; }
     .quiz30-emoji-cell { font-size: 1.2rem; }
+    .quiz30-input-wrapper { flex-direction: column; }
+    .quiz30-text-input { font-size: 1.2rem; padding: 12px; }
+    .quiz30-submit-btn { width: 100%; padding: 12px; }
 }
 
 @media (min-width: 768px) {

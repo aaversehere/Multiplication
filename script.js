@@ -1357,27 +1357,27 @@ function buildQuiz30(level) {
     const { min, max } = getLevelRange30(level);
     const questions = [];
 
-    // 10 soal ANGKA
+    // 10 soal ANGKA — 5 pilih, 5 tulis
     for (let i = 0; i < 10; i++) {
         const a = randInt(min, max), b = randInt(min, max);
-        questions.push({ type: 'angka', a, b, correct: a * b });
+        questions.push({ type: 'angka', a, b, correct: a * b, inputMode: i < 5 ? 'tulis' : 'pilih' });
     }
 
-    // 10 soal CERITA
+    // 10 soal CERITA — 5 pilih, 5 tulis
     for (let i = 0; i < 10; i++) {
         const a = randInt(min, max), b = randInt(min, max);
         const item = QUIZ_EMOJI_ITEMS[randInt(0, QUIZ_EMOJI_ITEMS.length - 1)];
         const tmpl = QUIZ_STORY_TEMPLATES[randInt(0, QUIZ_STORY_TEMPLATES.length - 1)];
         const text = tmpl.replace(/{a}/g, a).replace(/{b}/g, b).replace(/{item}/g, item.name);
-        questions.push({ type: 'cerita', a, b, correct: a * b, text, emoji: item.emoji });
+        questions.push({ type: 'cerita', a, b, correct: a * b, text, emoji: item.emoji, inputMode: i < 5 ? 'tulis' : 'pilih' });
     }
 
-    // 10 soal GAMBAR (emoji visual grid)
+    // 10 soal GAMBAR (emoji visual grid) — 5 pilih, 5 tulis
     for (let i = 0; i < 10; i++) {
         const a = randInt(min, Math.min(max, 5));
         const b = randInt(min, Math.min(max, 5));
         const item = QUIZ_EMOJI_ITEMS[randInt(0, QUIZ_EMOJI_ITEMS.length - 1)];
-        questions.push({ type: 'gambar', a, b, correct: a * b, emoji: item.emoji, name: item.name });
+        questions.push({ type: 'gambar', a, b, correct: a * b, emoji: item.emoji, name: item.name, inputMode: i < 5 ? 'tulis' : 'pilih' });
     }
 
     return shuffle(questions);
@@ -1391,6 +1391,8 @@ function startQuiz30(level) {
     quiz30Answers = new Array(30).fill(null);
     showPage('quiz');
     document.getElementById('quizTitle').textContent = `📝 Latihan Soal — ${level.toUpperCase()}`;
+    // Reset quizNav visibility (finishQuiz30 menyembunyikannya)
+    document.getElementById('quizNav').style.display = 'flex';
     renderQuiz30Question();
 }
 window.startQuiz30 = startQuiz30;
@@ -1401,15 +1403,23 @@ function renderQuiz30Question() {
     document.getElementById('quizProgress').textContent = `Soal ${quiz30Index + 1} / ${total}`;
     document.getElementById('quizScore').textContent = `Skor: ${quiz30Score}`;
 
-    document.getElementById('prevBtn30').style.display = quiz30Index > 0 ? 'inline-block' : 'none';
-    document.getElementById('nextBtn30').style.display = quiz30Index < total - 1 ? 'inline-block' : 'none';
-    document.getElementById('finishQuizBtn30').style.display = quiz30Index === total - 1 ? 'inline-block' : 'none';
+    // Sembunyikan tombol navigasi (auto-advance sekarang)
+    document.getElementById('prevBtn30').style.display = 'none';
+    document.getElementById('nextBtn30').style.display = 'none';
+    document.getElementById('finishQuizBtn30').style.display = quiz30Index === total - 1 && quiz30Answers[quiz30Index] !== null ? 'inline-block' : 'none';
 
     const { min, max } = getLevelRange30(quiz30Level);
     const opts = generateOpts30(q.correct, min * min, max * max);
 
+    // Tentukan apakah soal ini TULIS atau PILIH
+    const isTulis = q.inputMode === 'tulis';
+    const alreadyAnswered = quiz30Answers[quiz30Index] !== null;
+
+    // Label tipe soal
+    const modeLabel = isTulis ? '✏️ Isian' : '🔘 Pilihan Ganda';
+
     let html = `<div class="quiz30-card">`;
-    html += `<div class="quiz30-num">Soal ${quiz30Index + 1} dari ${total}</div>`;
+    html += `<div class="quiz30-num">Soal ${quiz30Index + 1} dari ${total} <span class="quiz30-mode-badge ${isTulis ? 'badge-tulis' : 'badge-pilih'}">${modeLabel}</span></div>`;
 
     if (q.type === 'angka') {
         html += `<div class="quiz30-soal-angka">${q.a} × ${q.b} = ?</div>`;
@@ -1421,7 +1431,6 @@ function renderQuiz30Question() {
                 <strong>${q.a} × ${q.b} = ?</strong>
             </div>`;
     } else if (q.type === 'gambar') {
-        // Grid emoji visual — tampilkan a baris × b kolom
         let grid = '';
         for (let r = 0; r < q.a; r++) {
             grid += '<div class="quiz30-emoji-row">';
@@ -1437,19 +1446,56 @@ function renderQuiz30Question() {
             <div class="quiz30-soal-angka" style="font-size:1.8rem;">${q.a} × ${q.b} = ?</div>`;
     }
 
-    html += `<div class="quiz30-opts">`;
-    opts.forEach(opt => {
-        const prev = quiz30Answers[quiz30Index];
-        let cls = 'quiz30-opt-btn';
-        if (prev !== null) {
-            if (opt === q.correct) cls += ' opt30-correct';
-            else if (opt === prev && prev !== q.correct) cls += ' opt30-wrong';
+    // ===== JAWABAN: TULIS atau PILIH =====
+    if (isTulis) {
+        // Mode ISIAN (tulis jawaban)
+        if (alreadyAnswered) {
+            const prev = quiz30Answers[quiz30Index];
+            const isCorrect = prev === q.correct;
+            html += `<div class="quiz30-input-area">`;
+            html += `<div class="quiz30-input-result ${isCorrect ? 'input-result-correct' : 'input-result-wrong'}">`;
+            html += `<span class="quiz30-input-answer">${prev}</span>`;
+            html += isCorrect ? ' ✅ Benar!' : ` ❌ Salah! Jawaban: <strong>${q.correct}</strong>`;
+            html += `</div></div>`;
+        } else {
+            html += `<div class="quiz30-input-area">`;
+            html += `<div class="quiz30-input-wrapper">`;
+            html += `<input type="number" id="quiz30Input" class="quiz30-text-input" placeholder="Tulis jawabanmu..." autocomplete="off" inputmode="numeric">`;
+            html += `<button class="quiz30-submit-btn" onclick="answerQuiz30Input()">Jawab ✓</button>`;
+            html += `</div>`;
+            html += `</div>`;
         }
-        html += `<button class="${cls}" onclick="answerQuiz30(${opt})">${opt}</button>`;
-    });
-    html += `</div></div>`;
+    } else {
+        // Mode PILIHAN GANDA
+        html += `<div class="quiz30-opts">`;
+        opts.forEach(opt => {
+            const prev = quiz30Answers[quiz30Index];
+            let cls = 'quiz30-opt-btn';
+            if (prev !== null) {
+                if (opt === q.correct) cls += ' opt30-correct';
+                else if (opt === prev && prev !== q.correct) cls += ' opt30-wrong';
+            }
+            html += `<button class="${cls}" onclick="answerQuiz30(${opt})">${opt}</button>`;
+        });
+        html += `</div>`;
+    }
 
+    html += `</div>`;
     document.getElementById('quizContainer').innerHTML = html;
+
+    // Auto-focus input untuk soal isian
+    if (isTulis && !alreadyAnswered) {
+        const inp = document.getElementById('quiz30Input');
+        if (inp) {
+            inp.focus();
+            inp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    answerQuiz30Input();
+                }
+            });
+        }
+    }
 }
 
 function generateOpts30(correct, min, max) {
@@ -1476,8 +1522,34 @@ function answerQuiz30(selected) {
     }
     document.getElementById('quizScore').textContent = `Skor: ${quiz30Score}`;
     renderQuiz30Question();
+
+    // Auto-advance ke soal berikutnya setelah 1 detik
+    setTimeout(() => {
+        if (quiz30Index < quiz30Questions.length - 1) {
+            quiz30Index++;
+            renderQuiz30Question();
+        } else {
+            // Soal terakhir: tampilkan tombol Selesai
+            document.getElementById('finishQuizBtn30').style.display = 'inline-block';
+        }
+    }, 1000);
 }
 window.answerQuiz30 = answerQuiz30;
+
+function answerQuiz30Input() {
+    const inp = document.getElementById('quiz30Input');
+    if (!inp) return;
+    const val = inp.value.trim();
+    if (val === '') return;
+    const numVal = parseInt(val, 10);
+    if (isNaN(numVal)) return;
+    // Disable input & tombol agar tidak bisa ditekan 2x
+    inp.disabled = true;
+    const btn = inp.parentElement.querySelector('.quiz30-submit-btn');
+    if (btn) btn.disabled = true;
+    answerQuiz30(numVal);
+}
+window.answerQuiz30Input = answerQuiz30Input;
 
 function nextQuiz30() {
     if (quiz30Index < quiz30Questions.length - 1) { quiz30Index++; renderQuiz30Question(); }
