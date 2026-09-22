@@ -200,6 +200,7 @@ window.addEventListener("load", async () => {
     loadPlayersFromStorage();
     renderPlayerHistory();
     await ensureSupabaseAvailability();
+    if (typeof updateQuizVoiceUI === 'function') updateQuizVoiceUI();
 });
 
 const AUTH_REQUEST_TIMEOUT = 7000;
@@ -255,6 +256,7 @@ function clearGameArea(){
 
 function showPage(id){
     clearGameArea(); 
+    if (typeof stopQuizSpeech === 'function') stopQuizSpeech();
     
     // Hentikan pemutaran video dan sinkronkan audio saat berpindah halaman
     if (id !== 'video' && typeof window.handleLeavingVideoPage === 'function') {
@@ -291,6 +293,8 @@ function showPage(id){
         showModuleMenu();
     } else if (id === 'about') {
         renderPlayerHistory();
+    } else if (id === 'teach') {
+        initPdfViewer();
     }
     
     // Highlight active nav item and scroll into view smoothly
@@ -819,142 +823,1147 @@ function generateOptions(correct, container, callback){
     });
 }
 
-/* -------------------------------------
-    MODUL INTERAKTIF 📘
--------------------------------------*/
-const activityContainerId = "moduleContent"; 
+/* ==========================================================================
+   BUKU PETUALANGAN DIGITAL INTERAKTIF (MODUL INTERAKTIF MATHWORLD)
+   Engine 4 Misi Petualangan Perkalian Ramah Anak Kelas 2 SD
+   ========================================================================== */
 
-function showModuleMenu(){
-    const container = document.getElementById(activityContainerId);
-    if (!container) return;
-    container.innerHTML = `
-        <h2 style="color:#5C8D89; text-align:center;">Pilih Aktivitas Modul Interaktif</h2>
-        <div style="display:flex; flex-direction:column; gap:15px; margin-top:20px; align-items:center;">
-            <button class="jawabanBtn" onclick="startActivity('multiplicationConcept')">Aktivitas 1: Tabel Perkalian (1-10)</button>
-            <button class="jawabanBtn" onclick="startActivity('likertSurvey')">Aktivitas 2: Angket Pemahaman</button>
-        </div>
-    `;
+// Global State Buku Petualangan
+const moduleBookState = {
+    currentPage: 1,
+    totalPages: 4,
+    // Misi 1: Menata Makanan
+    m1: {
+        animal: null,
+        food: null,
+        basketsCount: 3,
+        itemsPerBasket: 4,
+        totalItems: 12,
+        basketsData: [],       // array of arrays of item objects
+        unassignedFoods: [],   // items still on the plate
+        isCompleted: false,
+        initialized: false
+    },
+    // Misi 2: Taman Bunga Array
+    m2: {
+        rows: 2,
+        cols: 4,
+        flower: '🌸',
+        initialized: false
+    },
+    // Misi 3: Katak Ceria
+    m3: {
+        stepSize: 3,
+        currentPos: 0,
+        jumpCount: 0,
+        isAutoJumping: false,
+        landedPositions: [0],
+        initialized: false
+    },
+    // Misi 4: Kuis Menjodohkan
+    m4: {
+        pairs: [],
+        leftItems: [],
+        rightItems: [],
+        selectedLeftId: null,
+        selectedRightId: null,
+        matchedPairs: [], // array of { leftId, rightId, color }
+        colors: ['#16a085', '#e67e22', '#2980b9', '#9b59b6', '#e74c3c'],
+        initialized: false
+    }
+};
+
+// Web Audio API Sound Synthesizer (Zero-latency offline sound effects)
+let _webAudioCtx = null;
+function getAudioContext() {
+    if (!_webAudioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) _webAudioCtx = new AudioCtx();
+    }
+    if (_webAudioCtx && _webAudioCtx.state === 'suspended') {
+        _webAudioCtx.resume();
+    }
+    return _webAudioCtx;
+}
+
+// Suara Arpeggio Kemenangan (Fanfare)
+function playFanfareSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.09);
+            gain.gain.setValueAtTime(0.2, now + i * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.09);
+            osc.stop(now + i * 0.09 + 0.4);
+        });
+    } catch (e) {
+        console.warn("AudioContext fanfare error:", e);
+    }
+}
+
+// Suara Lompatan Katak (Boing/Hop)
+function playBoingSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(620, now + 0.16);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.24);
+    } catch (e) {
+        console.warn("AudioContext boing error:", e);
+    }
+}
+
+// Suara Pop Lembut Saat Memindahkan Makanan
+function playPopSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    } catch (e) {}
+}
+
+/* --------------------------------------------------------------------------
+   NAVIGASI HALAMAN BUKU PETUALANGAN
+   -------------------------------------------------------------------------- */
+
+function showModuleMenu() {
+    // Dipanggil saat menu Modul Interaktif dibuka
+    setModulePage(moduleBookState.currentPage || 1);
 }
 window.showModuleMenu = showModuleMenu;
 
-function startActivity(activityId) {
-    const container = document.getElementById(activityContainerId);
-    if (!container) return;
+function setModulePage(pageNumber) {
+    if (pageNumber < 1) pageNumber = 1;
+    if (pageNumber > moduleBookState.totalPages) pageNumber = moduleBookState.totalPages;
+    moduleBookState.currentPage = pageNumber;
 
-    if (activityId === 'multiplicationConcept') {
-        renderMultiplicationTableSelector(container);
-    } else if (activityId === 'likertSurvey') {
-        renderSurvey(container);
+    // Sembunyikan semua halaman buku
+    for (let i = 1; i <= moduleBookState.totalPages; i++) {
+        const pageEl = document.getElementById(`modulePage${i}`);
+        if (pageEl) {
+            pageEl.style.display = (i === pageNumber) ? 'block' : 'none';
+        }
+        const tabBtn = document.getElementById(`tabBtn${i}`);
+        if (tabBtn) {
+            if (i === pageNumber) tabBtn.classList.add('active');
+            else tabBtn.classList.remove('active');
+        }
+    }
+
+    // Perbarui Indikator Halaman di Atas
+    const titles = [
+        "Misi 1: Menata Makanan",
+        "Misi 2: Taman Bunga",
+        "Misi 3: Katak Ceria",
+        "Misi 4: Kuis Menjodohkan"
+    ];
+    const indicator = document.getElementById('bookPageIndicator');
+    if (indicator) {
+        indicator.innerText = `Halaman ${pageNumber} dari 4 — ${titles[pageNumber - 1] || ''}`;
+    }
+
+    // Perbarui Dots di Bawah
+    const dotsContainer = document.getElementById('bookPageDots');
+    if (dotsContainer) {
+        const dots = dotsContainer.querySelectorAll('.page-dot');
+        dots.forEach((dot, idx) => {
+            if (idx + 1 === pageNumber) dot.classList.add('active');
+            else dot.classList.remove('active');
+        });
+    }
+
+    // Perbarui status tombol Prev / Next
+    const prevBtn = document.getElementById('btnBookPrev');
+    const nextBtn = document.getElementById('btnBookNext');
+    if (prevBtn) prevBtn.disabled = (pageNumber === 1);
+    if (nextBtn) nextBtn.disabled = (pageNumber === moduleBookState.totalPages);
+
+    // Inisialisasi konten halaman yang dibuka
+    if (pageNumber === 1 && !moduleBookState.m1.initialized) {
+        initMission1(false);
+    } else if (pageNumber === 2 && !moduleBookState.m2.initialized) {
+        initMission2();
+    } else if (pageNumber === 3 && !moduleBookState.m3.initialized) {
+        initMission3();
+    } else if (pageNumber === 4 && !moduleBookState.m4.initialized) {
+        initMission4(false);
+    }
+
+    // Jika masuk ke halaman 4, redraw garis SVG jika ada
+    if (pageNumber === 4) {
+        setTimeout(drawM4Lines, 80);
     }
 }
-window.startActivity = startActivity; 
+window.setModulePage = setModulePage;
 
-// --- AKTIVITAS 1: TABEL PERKALIAN 1-10 ---
-function renderMultiplicationTableSelector(container) {
-    container.innerHTML = `
-        <h2 style="color:#5C8D89; text-align:center;">Tabel Perkalian (1 - 10)</h2>
-        <p style="text-align:center; margin-bottom: 20px;">Pilih angka untuk melihat tabel perkaliannya.</p>
-        <div id="tableSelector" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:20px;">
-            ${Array(10).fill(0).map((_, i) => 
-                `<button class="jawabanBtn" style="flex: 0 0 10%; padding:10px; font-size:1.2rem;" 
-                    data-factor="${i + 1}" onclick="selectMultiplicationTable(${i + 1})">${i + 1}</button>`
-            ).join('')}
-        </div>
-        <div id="multiplicationTableOutput" style="text-align:center; font-size:1.2em; border: 2px solid #ccc; padding: 20px; border-radius: 8px; background-color: #fff;">
-            Pilih angka di atas untuk melihat tabel perkalian.
-        </div>
-        <button class="btn-back" onclick="showModuleMenu()" style="display:block; margin: 20px auto;">Kembali ke Menu Modul</button>
-    `;
-    selectMultiplicationTable(currentMultiplicationTable);
+function navigateModulePage(direction) {
+    setModulePage(moduleBookState.currentPage + direction);
+}
+window.navigateModulePage = navigateModulePage;
+
+
+/* ==========================================================================
+   HALAMAN 1: MISI MENATA MAKANAN (RANDOMIZED CONCEPT TEST & DRAG-DROP)
+   ========================================================================== */
+
+const M1_ANIMALS_DATA = [
+    { name: "Kelinci Cerdik", avatar: "🐰", foodName: "wortel", foodIcon: "🥕" },
+    { name: "Monyet Riang", avatar: "🐒", foodName: "pisang manis", foodIcon: "🍌" },
+    { name: "Kucing Imut", avatar: "🐱", foodName: "ikan segar", foodIcon: "🐟" },
+    { name: "Beruang Madu", avatar: "🐻", foodName: "stroberi", foodIcon: "🍓" },
+    { name: "Panda Gemas", avatar: "🐼", foodName: "apel merah", foodIcon: "🍎" },
+    { name: "Tupai Lincah", avatar: "🐿️", foodName: "kenari", foodIcon: "🌰" }
+];
+
+// Kombinasi angka perkalian ramah kelas 2 SD (Total <= 20)
+const M1_FACTORS_POOL = [
+    { x: 2, y: 3 },
+    { x: 3, y: 2 },
+    { x: 3, y: 3 },
+    { x: 2, y: 4 },
+    { x: 4, y: 2 },
+    { x: 3, y: 4 },
+    { x: 4, y: 3 },
+    { x: 2, y: 5 },
+    { x: 5, y: 2 },
+    { x: 3, y: 5 }
+];
+
+function initMission1(isRandomNew) {
+    moduleBookState.m1.initialized = true;
+    moduleBookState.m1.isCompleted = false;
+
+    // Sembunyikan feedback perayaan saat reset
+    const feedbackCard = document.getElementById('m1FeedbackCard');
+    if (feedbackCard) feedbackCard.style.display = 'none';
+
+    // 1. Pilih Karakter Hewan & Makanan
+    const animalObj = M1_ANIMALS_DATA[Math.floor(Math.random() * M1_ANIMALS_DATA.length)];
+    moduleBookState.m1.animal = animalObj;
+    moduleBookState.m1.food = animalObj.foodIcon;
+
+    // 2. Pilih Kombinasi X (Jumlah Keranjang) & Y (Isi per Keranjang)
+    let combo = M1_FACTORS_POOL[Math.floor(Math.random() * M1_FACTORS_POOL.length)];
+    // Jika acak baru dan sama persis dengan sebelumnya, putar sekali lagi
+    if (isRandomNew && combo.x === moduleBookState.m1.basketsCount && combo.y === moduleBookState.m1.itemsPerBasket) {
+        combo = M1_FACTORS_POOL[(Math.floor(Math.random() * (M1_FACTORS_POOL.length - 1)) + 1) % M1_FACTORS_POOL.length];
+    }
+
+    const X = combo.x;
+    const Y = combo.y;
+    const total = X * Y;
+
+    moduleBookState.m1.basketsCount = X;
+    moduleBookState.m1.itemsPerBasket = Y;
+    moduleBookState.m1.totalItems = total;
+
+    // 3. Siapkan Array Data
+    moduleBookState.m1.basketsData = Array.from({ length: X }, () => []);
+    moduleBookState.m1.unassignedFoods = Array.from({ length: total }, (_, i) => ({
+        id: `food-item-${i + 1}`,
+        icon: animalObj.foodIcon
+    }));
+
+    // 4. Perbarui Tampilan Dialog Hewan
+    const avatarEl = document.getElementById('m1AnimalAvatar');
+    const nameEl = document.getElementById('m1AnimalName');
+    const instructionEl = document.getElementById('m1MissionInstruction');
+
+    if (avatarEl) avatarEl.innerText = animalObj.avatar;
+    if (nameEl) nameEl.innerText = animalObj.name;
+    if (instructionEl) {
+        instructionEl.innerHTML = `Bantu aku mengisi <strong>${X} keranjang</strong>, di mana setiap keranjang berisi <strong>${Y} ${animalObj.foodName}</strong>!`;
+    }
+
+    // 5. Render Piring Makanan & Keranjang
+    renderM1FoodPlate();
+    renderM1Baskets();
+}
+window.initMission1 = initMission1;
+
+function renderM1FoodPlate() {
+    const plate = document.getElementById('m1FoodPlate');
+    const badge = document.getElementById('m1FoodRemainingBadge');
+    if (!plate) return;
+
+    plate.innerHTML = '';
+    const unassigned = moduleBookState.m1.unassignedFoods;
+
+    if (badge) {
+        badge.innerText = `${unassigned.length} / ${moduleBookState.m1.totalItems} Tersisa`;
+    }
+
+    if (unassigned.length === 0) {
+        plate.innerHTML = `<span style="color:#7f8c8d;font-style:italic;font-size:0.9rem;">Piring kosong — semua makanan sudah masuk keranjang! 🧺</span>`;
+        return;
+    }
+
+    unassigned.forEach((item) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'm1-food-item';
+        itemEl.id = item.id;
+        itemEl.draggable = true;
+        itemEl.innerText = item.icon;
+        itemEl.title = "Tarik (drag) atau klik untuk memasukkan ke keranjang";
+
+        // Event Drag (Laptop / Desktop)
+        itemEl.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({ itemId: item.id, fromBasketIdx: -1 }));
+            itemEl.classList.add('dragging');
+        });
+        itemEl.addEventListener('dragend', () => {
+            itemEl.classList.remove('dragging');
+        });
+
+        // Event Klik / Sentuh (Mobile & Tablet friendly)
+        itemEl.addEventListener('click', () => {
+            handleFoodClickMove(item.id, -1);
+        });
+
+        plate.appendChild(itemEl);
+    });
 }
 
-function selectMultiplicationTable(factor) {
-    currentMultiplicationTable = factor;
-    const output = document.getElementById("multiplicationTableOutput");
-    if (!output) return;
+function renderM1Baskets() {
+    const container = document.getElementById('m1BasketsContainer');
+    if (!container) return;
 
-    document.querySelectorAll('#tableSelector button').forEach((btn) => {
-        if (parseInt(btn.getAttribute('data-factor')) === factor) {
-            btn.style.backgroundColor = '#A7D7C5'; 
-            btn.style.color = 'white';
-        } else {
-            btn.style.backgroundColor = 'white'; 
-            btn.style.color = '#333';
+    container.innerHTML = '';
+    const X = moduleBookState.m1.basketsCount;
+    const Y = moduleBookState.m1.itemsPerBasket;
+
+    for (let i = 0; i < X; i++) {
+        const basketItems = moduleBookState.m1.basketsData[i];
+        const isFull = basketItems.length >= Y;
+        const isExact = basketItems.length === Y;
+
+        const basketCard = document.createElement('div');
+        basketCard.className = `m1-basket-card ${isFull ? 'full-basket' : ''}`;
+        basketCard.id = `m1BasketCard-${i}`;
+
+        basketCard.innerHTML = `
+            <div class="basket-header">
+                <span class="basket-title">Keranjang ${i + 1}</span>
+                <span class="basket-count-badge ${isExact ? 'is-correct' : ''}">
+                    ${basketItems.length} / ${Y}
+                </span>
+            </div>
+            <div class="basket-icon-art">🧺</div>
+            <div class="m1-basket-dropzone" id="m1Dropzone-${i}" data-basket-idx="${i}">
+            </div>
+        `;
+
+        const dropzone = basketCard.querySelector('.m1-basket-dropzone');
+
+        // Render isi keranjang
+        basketItems.forEach((item) => {
+            const foodInBasket = document.createElement('div');
+            foodInBasket.className = 'm1-food-item';
+            foodInBasket.draggable = true;
+            foodInBasket.innerText = item.icon;
+            foodInBasket.title = "Klik untuk mengembalikan makanan ke piring";
+
+            // Drag dari keranjang
+            foodInBasket.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', JSON.stringify({ itemId: item.id, fromBasketIdx: i }));
+                foodInBasket.classList.add('dragging');
+            });
+            foodInBasket.addEventListener('dragend', () => {
+                foodInBasket.classList.remove('dragging');
+            });
+
+            // Klik untuk mengembalikan ke piring
+            foodInBasket.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleReturnFoodToPlate(item.id, i);
+            });
+
+            dropzone.appendChild(foodInBasket);
+        });
+
+        // Event Drag Over & Drop pada Keranjang
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            basketCard.classList.add('drag-over');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            basketCard.classList.remove('drag-over');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            basketCard.classList.remove('drag-over');
+            try {
+                const dataStr = e.dataTransfer.getData('text/plain');
+                if (!dataStr) return;
+                const data = JSON.parse(dataStr);
+                handleDropFoodItem(data.itemId, data.fromBasketIdx, i);
+            } catch (err) {
+                console.error("Drop error:", err);
+            }
+        });
+
+        // Klik pada area kosong keranjang: masukkan 1 makanan dari piring jika piring ada isinya
+        dropzone.addEventListener('click', () => {
+            if (moduleBookState.m1.unassignedFoods.length > 0 && basketItems.length < Y) {
+                const firstFood = moduleBookState.m1.unassignedFoods[0];
+                handleDropFoodItem(firstFood.id, -1, i);
+            }
+        });
+
+        container.appendChild(basketCard);
+    }
+}
+
+// Logika pemindahan makanan (Drag/Drop)
+function handleDropFoodItem(itemId, fromBasketIdx, toBasketIdx) {
+    const Y = moduleBookState.m1.itemsPerBasket;
+    const targetBasket = moduleBookState.m1.basketsData[toBasketIdx];
+
+    // Cek apakah keranjang tujuan sudah penuh
+    if (targetBasket.length >= Y && fromBasketIdx !== toBasketIdx) {
+        return; // Jangan masukkan lebih dari target
+    }
+
+    let movedItem = null;
+
+    if (fromBasketIdx === -1) {
+        // Ambil dari piring
+        const idx = moduleBookState.m1.unassignedFoods.findIndex(f => f.id === itemId);
+        if (idx !== -1) {
+            movedItem = moduleBookState.m1.unassignedFoods.splice(idx, 1)[0];
+        }
+    } else {
+        // Pindah dari keranjang lain
+        const idx = moduleBookState.m1.basketsData[fromBasketIdx].findIndex(f => f.id === itemId);
+        if (idx !== -1) {
+            movedItem = moduleBookState.m1.basketsData[fromBasketIdx].splice(idx, 1)[0];
+        }
+    }
+
+    if (movedItem) {
+        targetBasket.push(movedItem);
+        playPopSound();
+        renderM1FoodPlate();
+        renderM1Baskets();
+        checkM1Completion();
+    }
+}
+
+// Logika pemindahan saat diklik di piring (Cari keranjang yang belum penuh)
+function handleFoodClickMove(itemId, fromBasketIdx) {
+    const Y = moduleBookState.m1.itemsPerBasket;
+    const baskets = moduleBookState.m1.basketsData;
+
+    // Cari keranjang pertama yang belum mencapai Y
+    let targetIdx = baskets.findIndex(b => b.length < Y);
+    if (targetIdx === -1) {
+        // Jika semua sudah pas Y, coba keranjang apa saja yang masih muat
+        targetIdx = baskets.findIndex(b => b.length < Y + 1);
+    }
+
+    if (targetIdx !== -1) {
+        handleDropFoodItem(itemId, fromBasketIdx, targetIdx);
+    }
+}
+
+// Kembalikan makanan dari keranjang ke piring
+function handleReturnFoodToPlate(itemId, basketIdx) {
+    const basket = moduleBookState.m1.basketsData[basketIdx];
+    const idx = basket.findIndex(f => f.id === itemId);
+    if (idx !== -1) {
+        const item = basket.splice(idx, 1)[0];
+        moduleBookState.m1.unassignedFoods.push(item);
+        playPopSound();
+        renderM1FoodPlate();
+        renderM1Baskets();
+        checkM1Completion();
+    }
+}
+
+// Periksa apakah seluruh keranjang sudah terisi tepat sesuai Y
+function checkM1Completion() {
+    const X = moduleBookState.m1.basketsCount;
+    const Y = moduleBookState.m1.itemsPerBasket;
+    const total = X * Y;
+    const baskets = moduleBookState.m1.basketsData;
+
+    const allCorrect = baskets.every(b => b.length === Y) && moduleBookState.m1.unassignedFoods.length === 0;
+
+    const feedbackCard = document.getElementById('m1FeedbackCard');
+    if (!feedbackCard) return;
+
+    if (allCorrect && !moduleBookState.m1.isCompleted) {
+        moduleBookState.m1.isCompleted = true;
+        feedbackCard.style.display = 'block';
+
+        // Susun string penjumlahan berulang: Y + Y + Y = Total
+        const repeatedStr = Array(X).fill(Y).join(' + ') + ` = ${total}`;
+        const multStr = `${X} × ${Y} = ${total}`;
+
+        const repEl = document.getElementById('m1RepeatedAddition');
+        const multEl = document.getElementById('m1MultiplicationFormula');
+        if (repEl) repEl.innerText = repeatedStr;
+        if (multEl) multEl.innerText = multStr;
+
+        // Efek audio ceria dan perayaan
+        if (typeof playSound === 'function') playSound('correct');
+        playFanfareSound();
+
+        // Scroll halus ke feedback
+        feedbackCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else if (!allCorrect) {
+        moduleBookState.m1.isCompleted = false;
+        feedbackCard.style.display = 'none';
+    }
+}
+
+
+/* ==========================================================================
+   HALAMAN 2: SIMULASI SUSUNAN ARRAY (TAMAN BUNGA AJAIB)
+   ========================================================================== */
+
+function initMission2() {
+    moduleBookState.m2.initialized = true;
+    renderFlowerGarden();
+}
+window.initMission2 = initMission2;
+
+function changeArrayDimension(type, delta) {
+    if (type === 'rows') {
+        let newRows = moduleBookState.m2.rows + delta;
+        if (newRows < 1) newRows = 1;
+        if (newRows > 6) newRows = 6;
+        moduleBookState.m2.rows = newRows;
+        const valEl = document.getElementById('m2RowsValue');
+        if (valEl) valEl.innerText = newRows;
+    } else if (type === 'cols') {
+        let newCols = moduleBookState.m2.cols + delta;
+        if (newCols < 1) newCols = 1;
+        if (newCols > 6) newCols = 6;
+        moduleBookState.m2.cols = newCols;
+        const valEl = document.getElementById('m2ColsValue');
+        if (valEl) valEl.innerText = newCols;
+    }
+    playPopSound();
+    renderFlowerGarden();
+}
+window.changeArrayDimension = changeArrayDimension;
+
+function setGardenFlower(flowerChar) {
+    moduleBookState.m2.flower = flowerChar;
+    const options = document.querySelectorAll('#m2FlowerOptions .btn-flower-chip');
+    options.forEach(btn => {
+        if (btn.innerText.trim() === flowerChar) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    playPopSound();
+    renderFlowerGarden();
+}
+window.setGardenFlower = setGardenFlower;
+
+function renderFlowerGarden() {
+    const gardenBed = document.getElementById('m2GardenBed');
+    if (!gardenBed) return;
+
+    const rows = moduleBookState.m2.rows;
+    const cols = moduleBookState.m2.cols;
+    const total = rows * cols;
+    const flower = moduleBookState.m2.flower;
+
+    gardenBed.style.gridTemplateColumns = `repeat(${cols}, minmax(46px, 64px))`;
+    gardenBed.innerHTML = '';
+
+    for (let r = 1; r <= rows; r++) {
+        for (let c = 1; c <= cols; c++) {
+            const cellIndex = (r - 1) * cols + c;
+            const cell = document.createElement('div');
+            cell.className = 'flower-pot-cell';
+            cell.title = `Baris ${r}, Kolom ${c} (Bunga ke-${cellIndex})`;
+
+            const bloom = document.createElement('span');
+            bloom.className = 'flower-bloom';
+            bloom.innerText = flower;
+            // Delay bertahap agar bunga mekar seperti gelombang
+            bloom.style.animationDelay = `${(cellIndex * 0.035)}s`;
+
+            const badge = document.createElement('span');
+            badge.className = 'flower-coord-badge';
+            badge.innerText = cellIndex;
+
+            cell.appendChild(bloom);
+            cell.appendChild(badge);
+
+            // Interaksi klik bunga: goyangan ceria
+            cell.addEventListener('click', () => {
+                bloom.style.animation = 'none';
+                void bloom.offsetWidth; // trigger reflow
+                bloom.style.animation = 'flowerBloom 0.4s ease-out forwards';
+                playPopSound();
+            });
+
+            gardenBed.appendChild(cell);
+        }
+    }
+
+    // Perbarui Rumus Teks Otomatis
+    const formulaMain = document.getElementById('m2FormulaMain');
+    const formulaSub = document.getElementById('m2FormulaSub');
+
+    if (formulaMain) {
+        formulaMain.innerText = `${rows} Baris × ${cols} Kolom = ${total} Bunga`;
+    }
+
+    if (formulaSub) {
+        const repeatedAddition = Array(rows).fill(cols).join(' + ') + ` = ${total}`;
+        formulaSub.innerHTML = `Penjumlahan Berulang: <strong>${repeatedAddition}</strong> (Ada ${rows} baris, setiap baris berisi ${cols} bunga)`;
+    }
+}
+
+function waterGarden() {
+    const gardenBed = document.getElementById('m2GardenBed');
+    if (!gardenBed) return;
+
+    playBoingSound();
+    gardenBed.classList.add('watering');
+    setTimeout(() => {
+        gardenBed.classList.remove('watering');
+    }, 1200);
+}
+window.waterGarden = waterGarden;
+
+
+/* ==========================================================================
+   HALAMAN 3: LOMPATAN GARIS BILANGAN (KATAK CERIA)
+   ========================================================================== */
+
+function initMission3() {
+    moduleBookState.m3.initialized = true;
+    renderNumberLineTicks();
+    updateFrogDisplay(false);
+}
+window.initMission3 = initMission3;
+
+function renderNumberLineTicks() {
+    const ticksContainer = document.getElementById('m3NumberTicks');
+    if (!ticksContainer) return;
+
+    ticksContainer.innerHTML = '';
+    for (let i = 0; i <= 20; i++) {
+        const tickItem = document.createElement('div');
+        tickItem.className = 'number-tick-item';
+        tickItem.id = `numberTick-${i}`;
+        tickItem.style.flex = '1';
+
+        tickItem.innerHTML = `
+            <div class="tick-mark"></div>
+            <div class="tick-number">${i}</div>
+        `;
+
+        ticksContainer.appendChild(tickItem);
+    }
+}
+
+function setFrogStep(step) {
+    moduleBookState.m3.stepSize = step;
+
+    // Perbarui chip aktif
+    [2, 3, 4, 5].forEach(s => {
+        const btn = document.getElementById(`frogStepBtn${s}`);
+        if (btn) {
+            if (s === step) btn.classList.add('active');
+            else btn.classList.remove('active');
         }
     });
 
-    let tableHtml = `<h3 style="color:#5C8D89; margin-bottom:15px;">Tabel Perkalian ${factor}</h3>`;
-    tableHtml += `<ul style="list-style:none; padding:0; max-width: 300px; margin: 10px auto; text-align: left; font-size: 1.1em;">`;
-    for (let i = 1; i <= 10; i++) {
-        tableHtml += `<li style="padding: 5px; border-bottom: 1px dashed #eee;">${factor} × ${i} = <strong style="float:right;">${factor * i}</strong></li>`;
+    // Perbarui teks tombol lompat
+    const jumpBtn = document.getElementById('btnFrogJump');
+    if (jumpBtn) {
+        jumpBtn.innerText = `🐸 Lompat ${step} Langkah!`;
     }
-    tableHtml += `</ul>`;
-    output.innerHTML = tableHtml;
+
+    // Reset posisi katak ke 0 dengan langkah baru
+    resetFrogMission();
 }
-window.selectMultiplicationTable = selectMultiplicationTable;
+window.setFrogStep = setFrogStep;
+
+function frogJumpNext() {
+    const step = moduleBookState.m3.stepSize;
+    const nextPos = moduleBookState.m3.currentPos + step;
+
+    if (nextPos > 20) {
+        // Sudah mencapai batas garis bilangan 20
+        if (typeof playSound === 'function') playSound('correct');
+        playFanfareSound();
+        return false;
+    }
+
+    const prevPos = moduleBookState.m3.currentPos;
+    moduleBookState.m3.currentPos = nextPos;
+    moduleBookState.m3.jumpCount += 1;
+    moduleBookState.m3.landedPositions.push(nextPos);
+
+    playBoingSound();
+    animateFrogJump(prevPos, nextPos);
+    drawFrogArc(prevPos, nextPos);
+    updateFrogDisplay(true);
+
+    // Jika mencapai akhir (atau kelipatan batas)
+    if (nextPos + step > 20) {
+        setTimeout(() => {
+            if (typeof playSound === 'function') playSound('correct');
+            playFanfareSound();
+        }, 500);
+    }
+
+    return true;
+}
+window.frogJumpNext = frogJumpNext;
+
+function frogJumpAuto() {
+    if (moduleBookState.m3.isAutoJumping) return;
+    moduleBookState.m3.isAutoJumping = true;
+
+    // Jika sudah di ujung, mulai lagi dari 0
+    if (moduleBookState.m3.currentPos + moduleBookState.m3.stepSize > 20) {
+        resetFrogMission();
+    }
+
+    const autoInterval = setInterval(() => {
+        const canJump = frogJumpNext();
+        if (!canJump || moduleBookState.m3.currentPos + moduleBookState.m3.stepSize > 20) {
+            clearInterval(autoInterval);
+            moduleBookState.m3.isAutoJumping = false;
+        }
+    }, 600);
+}
+window.frogJumpAuto = frogJumpAuto;
+
+function resetFrogMission() {
+    moduleBookState.m3.currentPos = 0;
+    moduleBookState.m3.jumpCount = 0;
+    moduleBookState.m3.landedPositions = [0];
+    moduleBookState.m3.isAutoJumping = false;
+
+    // Bersihkan SVG Arcs
+    const svgArcs = document.getElementById('m3SvgArcs');
+    if (svgArcs) svgArcs.innerHTML = '';
+
+    // Bersihkan highlight angka
+    for (let i = 0; i <= 20; i++) {
+        const tickItem = document.getElementById(`numberTick-${i}`);
+        if (tickItem) {
+            tickItem.classList.remove('landed', 'current-pos');
+        }
+    }
+
+    playPopSound();
+    updateFrogDisplay(false);
+}
+window.resetFrogMission = resetFrogMission;
+
+function animateFrogJump(fromPos, toPos) {
+    const frog = document.getElementById('m3FrogMascot');
+    if (!frog) return;
+
+    frog.classList.add('jumping');
+    // Hitung posisi horizontal persentase (0% s/d 100%)
+    const pct = (toPos / 20) * 100;
+    frog.style.left = `${pct}%`;
+
+    setTimeout(() => {
+        frog.classList.remove('jumping');
+    }, 450);
+}
+
+function drawFrogArc(fromPos, toPos) {
+    const svgArcs = document.getElementById('m3SvgArcs');
+    if (!svgArcs) return;
+
+    // Koordinat SVG viewBox="0 0 1000 120"
+    const x1 = (fromPos / 20) * 1000;
+    const x2 = (toPos / 20) * 1000;
+    const midX = (x1 + x2) / 2;
+    const peakY = 20; // Puncak lompatan
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${x1} 90 Q ${midX} ${peakY} ${x2} 90`);
+    path.setAttribute('stroke', '#16a085');
+    path.setAttribute('stroke-width', '4');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-dasharray', '6,6');
+
+    svgArcs.appendChild(path);
+}
+
+function updateFrogDisplay(highlightLanded) {
+    const pos = moduleBookState.m3.currentPos;
+    const count = moduleBookState.m3.jumpCount;
+    const step = moduleBookState.m3.stepSize;
+
+    // Perbarui posisi maskot
+    const frog = document.getElementById('m3FrogMascot');
+    const badge = document.getElementById('m3FrogCountBadge');
+    if (frog) {
+        const pct = (pos / 20) * 100;
+        frog.style.left = `${pct}%`;
+    }
+    if (badge) {
+        badge.innerText = `${count}x`;
+    }
+
+    // Sorot angka di garis bilangan
+    moduleBookState.m3.landedPositions.forEach(p => {
+        const tick = document.getElementById(`numberTick-${p}`);
+        if (tick) tick.classList.add('landed');
+    });
+
+    const currentTick = document.getElementById(`numberTick-${pos}`);
+    if (currentTick) currentTick.classList.add('current-pos');
+
+    // Perbarui Teks Statistik & Rumus Matematika
+    const countText = document.getElementById('m3JumpCountText');
+    const stepText = document.getElementById('m3StepSizeText');
+    const repeatedEl = document.getElementById('m3FormulaRepeated');
+    const multEl = document.getElementById('m3FormulaMultiplication');
+
+    if (countText) countText.innerText = count;
+    if (stepText) stepText.innerText = step;
+
+    if (repeatedEl && multEl) {
+        if (count === 0) {
+            repeatedEl.innerText = '0 = 0';
+            multEl.innerText = `Bentuk Perkalian: 0 × ${step} = 0`;
+        } else {
+            const repStr = Array(count).fill(step).join(' + ') + ` = ${pos}`;
+            repeatedEl.innerHTML = `Penjumlahan Berulang: <strong>${repStr}</strong>`;
+            multEl.innerHTML = `Bentuk Perkalian: <strong>${count} × ${step} = ${pos}</strong>`;
+        }
+    }
+}
 
 
-// --- AKTIVITAS 2: ANGKET PEMAHAMAN ---
-const surveyQuestions = [
-    { id: 'q1', text: "Saya merasa perkalian itu mudah dipahami." },
-    { id: 'q2', text: "Saya merasa percaya diri saat mengerjakan soal perkalian." },
-    { id: 'q3', text: "Saya suka belajar perkalian menggunakan game interaktif." },
-    { id: 'q4', text: "Saya tahu bahwa perkalian adalah penjumlahan berulang." },
-    { id: 'q5', text: "Saya ingin lebih banyak latihan menggunakan modul seperti ini." },
+/* ==========================================================================
+   HALAMAN 4: MINI KUIS MENJODOHKAN (DIRECT FEEDBACK & SVG LINES)
+   ========================================================================== */
+
+const M4_QUESTION_POOL = [
+    {
+        id: 'p1',
+        text: '3 piring, tiap piring isi 2 donat',
+        icon: '🍩🍩  🍩🍩  🍩🍩',
+        formula: '3 × 2 = 6',
+        repeated: '(2 + 2 + 2 = 6)',
+        ansVal: '3x2'
+    },
+    {
+        id: 'p2',
+        text: '2 toples, tiap toples isi 4 permen',
+        icon: '🍬🍬🍬🍬   🍬🍬🍬🍬',
+        formula: '2 × 4 = 8',
+        repeated: '(4 + 4 = 8)',
+        ansVal: '2x4'
+    },
+    {
+        id: 'p3',
+        text: '4 sarang, tiap sarang isi 3 telur',
+        icon: '🥚🥚🥚   🥚🥚🥚   🥚🥚🥚   🥚🥚🥚',
+        formula: '4 × 3 = 12',
+        repeated: '(3 + 3 + 3 + 3 = 12)',
+        ansVal: '4x3'
+    },
+    {
+        id: 'p4',
+        text: '5 kotak, tiap kotak isi 2 pensil',
+        icon: '✏️✏️  ✏️✏️  ✏️✏️  ✏️✏️  ✏️✏️',
+        formula: '5 × 2 = 10',
+        repeated: '(2 + 2 + 2 + 2 + 2 = 10)',
+        ansVal: '5x2'
+    },
+    {
+        id: 'p5',
+        text: '3 vas, tiap vas mekar 4 bunga',
+        icon: '🌸🌸🌸🌸   🌸🌸🌸🌸   🌸🌸🌸🌸',
+        formula: '3 × 4 = 12',
+        repeated: '(4 + 4 + 4 = 12)',
+        ansVal: '3x4'
+    },
+    {
+        id: 'p6',
+        text: '4 mobil, tiap mobil ada 2 lampu',
+        icon: '💡💡   💡💡   💡💡   💡💡',
+        formula: '4 × 2 = 8',
+        repeated: '(2 + 2 + 2 + 2 = 8)',
+        ansVal: '4x2'
+    },
+    {
+        id: 'p7',
+        text: '2 akuarium, tiap akuarium ada 5 ikan',
+        icon: '🐟🐟🐟🐟🐟   🐟🐟🐟🐟🐟',
+        formula: '2 × 5 = 10',
+        repeated: '(5 + 5 = 10)',
+        ansVal: '2x5'
+    }
 ];
-const likertLabels = { 1: 'Sangat Tidak Setuju', 2: 'Tidak Setuju', 3: 'Netral', 4: 'Setuju', 5: 'Sangat Setuju' };
 
-function renderSurvey(container) {
-    container.innerHTML = `
-        <h2 style="color:#5C8D89; text-align:center;">Angket Pemahaman Perkalian</h2>
-        <p style="text-align:center;">Berikan penilaian Anda dari 1 s.d 5.</p>
-        <div id="surveyForm" style="margin-top:20px; border: 1px solid #A7D7C5; padding: 15px; border-radius: 8px;">
-        </div>
-        <button class="jawabanBtn" id="submitSurveyBtn" onclick="submitSurvey()" style="display:block; margin: 20px auto; background-color: #5C8D89; color: white;">Kirim Jawaban</button>
-        <div id="surveyResult" style="margin-top:20px; text-align:center; color:#28a745; font-weight: bold;"></div>
-        <button class="btn-back" onclick="showModuleMenu()" style="display:block; margin: 20px auto;">Kembali ke Menu Modul</button>
-    `;
+function initMission4(isRandomNew) {
+    moduleBookState.m4.initialized = true;
+    moduleBookState.m4.selectedLeftId = null;
+    moduleBookState.m4.selectedRightId = null;
+    moduleBookState.m4.matchedPairs = [];
 
-    const form = document.getElementById("surveyForm");
-    surveyQuestions.forEach(q => {
-        const item = document.createElement('div');
-        item.className = 'survey-item';
-        item.style.marginBottom = '20px';
-        item.style.borderBottom = '1px dashed #ccc';
-        item.style.paddingBottom = '10px';
-        item.innerHTML = `
-            <p><strong>${q.id.toUpperCase()}. ${q.text}</strong></p>
-            <div style="display:flex; justify-content:space-between; margin-top:10px;">
-                ${[1, 2, 3, 4, 5].map(val => `
-                    <label style="flex: 1; text-align: center; cursor: pointer;">
-                        <input type="radio" name="${q.id}" value="${val}" required onchange="updateSurveyAnswer('${q.id}', ${val})" 
-                            ${surveyAnswers[q.id] === val ? 'checked' : ''}>
-                        <div style="font-size: 0.8em; margin-top: 5px;">${val}</div>
-                    </label>
-                `).join('')}
+    // Sembunyikan Banner Juara
+    const banner = document.getElementById('m4SuccessBanner');
+    if (banner) banner.style.display = 'none';
+
+    // Bersihkan Garis SVG
+    const svgLines = document.getElementById('m4SvgLines');
+    if (svgLines) svgLines.innerHTML = '';
+
+    // Ambil 4 soal acak dari pool
+    const shuffledPool = [...M4_QUESTION_POOL].sort(() => Math.random() - 0.5);
+    const chosenPairs = shuffledPool.slice(0, 4);
+
+    // Kocok urutan kiri dan kanan secara terpisah
+    const leftItems = [...chosenPairs].sort(() => Math.random() - 0.5);
+    const rightItems = [...chosenPairs].sort(() => Math.random() - 0.5);
+
+    moduleBookState.m4.pairs = chosenPairs;
+    moduleBookState.m4.leftItems = leftItems;
+    moduleBookState.m4.rightItems = rightItems;
+
+    renderM4Cards();
+    updateM4Progress();
+}
+window.initMission4 = initMission4;
+
+function renderM4Cards() {
+    const leftCol = document.getElementById('m4LeftCol');
+    const rightCol = document.getElementById('m4RightCol');
+    if (!leftCol || !rightCol) return;
+
+    leftCol.innerHTML = '';
+    rightCol.innerHTML = '';
+
+    // Render Kolom Kiri: Gambar Kelompok Benda
+    moduleBookState.m4.leftItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'm4-card m4-left-card';
+        card.id = `m4LeftCard-${item.id}`;
+        card.dataset.id = item.id;
+
+        card.innerHTML = `
+            <div class="m4-card-content">
+                <div>
+                    <div class="m4-item-icon" style="letter-spacing:2px;font-size:1.15rem;margin-bottom:4px;">${item.icon}</div>
+                    <div class="m4-item-text">${item.text}</div>
+                </div>
+            </div>
+            <div class="m4-connector-dot" id="m4DotLeft-${item.id}"></div>
+        `;
+
+        card.addEventListener('click', () => {
+            handleM4CardClick('left', item.id);
+        });
+
+        leftCol.appendChild(card);
+    });
+
+    // Render Kolom Kanan: Rumus Perkalian
+    moduleBookState.m4.rightItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'm4-card m4-right-card';
+        card.id = `m4RightCard-${item.id}`;
+        card.dataset.id = item.id;
+
+        card.innerHTML = `
+            <div class="m4-connector-dot" id="m4DotRight-${item.id}"></div>
+            <div class="m4-card-content" style="justify-content:center;text-align:center;">
+                <div>
+                    <div class="m4-formula-text">${item.formula}</div>
+                    <div style="font-size:0.8rem;color:#7f8c8d;font-weight:700;">${item.repeated}</div>
+                </div>
             </div>
         `;
-        form.appendChild(item);
+
+        card.addEventListener('click', () => {
+            handleM4CardClick('right', item.id);
+        });
+
+        rightCol.appendChild(card);
     });
 }
 
-function updateSurveyAnswer(qId, value) {
-    surveyAnswers[qId] = parseInt(value);
-}
-window.updateSurveyAnswer = updateSurveyAnswer;
+function handleM4CardClick(side, id) {
+    // Abaikan jika kartu sudah matched
+    const isAlreadyMatched = moduleBookState.m4.matchedPairs.some(p => p.leftId === id || p.rightId === id);
+    if (isAlreadyMatched) return;
 
-function submitSurvey() {
-    if (Object.keys(surveyAnswers).length !== surveyQuestions.length) {
-        alert("Mohon jawab semua pertanyaan sebelum mengirim angket.");
-        return;
+    playPopSound();
+
+    if (side === 'left') {
+        // Pilih kartu kiri
+        moduleBookState.m4.selectedLeftId = id;
+        document.querySelectorAll('.m4-left-card').forEach(c => {
+            if (c.dataset.id === id) c.classList.add('selected');
+            else c.classList.remove('selected');
+        });
+    } else if (side === 'right') {
+        // Pilih kartu kanan
+        moduleBookState.m4.selectedRightId = id;
+        document.querySelectorAll('.m4-right-card').forEach(c => {
+            if (c.dataset.id === id) c.classList.add('selected');
+            else c.classList.remove('selected');
+        });
     }
-    const resultEl = document.getElementById("surveyResult");
-    if(resultEl) resultEl.innerHTML = "✅ Angket Berhasil Dikirim! Terima kasih.";
-    
-    document.querySelectorAll('#surveyForm input').forEach(input => input.disabled = true);
-    document.getElementById('submitSurveyBtn').disabled = true;
+
+    // Jika kedua sisi sudah dipilih, verifikasi kecocokan
+    if (moduleBookState.m4.selectedLeftId && moduleBookState.m4.selectedRightId) {
+        verifyM4Match();
+    }
 }
-window.submitSurvey = submitSurvey;
+
+function verifyM4Match() {
+    const leftId = moduleBookState.m4.selectedLeftId;
+    const rightId = moduleBookState.m4.selectedRightId;
+
+    const leftCard = document.getElementById(`m4LeftCard-${leftId}`);
+    const rightCard = document.getElementById(`m4RightCard-${rightId}`);
+
+    if (leftId === rightId) {
+        // JAWABAN BENAR!
+        const pairIndex = moduleBookState.m4.matchedPairs.length;
+        const color = moduleBookState.m4.colors[pairIndex % moduleBookState.m4.colors.length];
+
+        moduleBookState.m4.matchedPairs.push({ leftId, rightId, color });
+
+        if (leftCard) {
+            leftCard.classList.remove('selected');
+            leftCard.classList.add('matched');
+        }
+        if (rightCard) {
+            rightCard.classList.remove('selected');
+            rightCard.classList.add('matched');
+        }
+
+        if (typeof playSound === 'function') playSound('correct');
+
+        moduleBookState.m4.selectedLeftId = null;
+        moduleBookState.m4.selectedRightId = null;
+
+        drawM4Lines();
+        updateM4Progress();
+
+        // Cek apakah semua 4 pasangan selesai
+        if (moduleBookState.m4.matchedPairs.length === moduleBookState.m4.pairs.length) {
+            setTimeout(() => {
+                const banner = document.getElementById('m4SuccessBanner');
+                if (banner) banner.style.display = 'block';
+                playFanfareSound();
+            }, 400);
+        }
+    } else {
+        // JAWABAN KURANG TEPAT
+        if (typeof playSound === 'function') playSound('wrong');
+
+        // Shake animation effect
+        if (leftCard) leftCard.style.animation = 'flowerWiggle 0.3s ease-in-out';
+        if (rightCard) rightCard.style.animation = 'flowerWiggle 0.3s ease-in-out';
+
+        setTimeout(() => {
+            if (leftCard) {
+                leftCard.style.animation = '';
+                leftCard.classList.remove('selected');
+            }
+            if (rightCard) {
+                rightCard.style.animation = '';
+                rightCard.classList.remove('selected');
+            }
+            moduleBookState.m4.selectedLeftId = null;
+            moduleBookState.m4.selectedRightId = null;
+        }, 400);
+    }
+}
+
+function drawM4Lines() {
+    const svgLines = document.getElementById('m4SvgLines');
+    const arena = document.getElementById('m4MatchingArena');
+    if (!svgLines || !arena) return;
+
+    svgLines.innerHTML = '';
+    const arenaRect = arena.getBoundingClientRect();
+
+    moduleBookState.m4.matchedPairs.forEach(pair => {
+        const dotLeft = document.getElementById(`m4DotLeft-${pair.leftId}`);
+        const dotRight = document.getElementById(`m4DotRight-${pair.rightId}`);
+        if (!dotLeft || !dotRight) return;
+
+        const r1 = dotLeft.getBoundingClientRect();
+        const r2 = dotRight.getBoundingClientRect();
+
+        const x1 = r1.left + r1.width / 2 - arenaRect.left;
+        const y1 = r1.top + r1.height / 2 - arenaRect.top;
+        const x2 = r2.left + r2.width / 2 - arenaRect.left;
+        const y2 = r2.top + r2.height / 2 - arenaRect.top;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const midX = (x1 + x2) / 2;
+        // Kurva Bezier kubik halus antara titik kiri dan kanan
+        path.setAttribute('d', `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`);
+        path.setAttribute('stroke', pair.color || '#2ecc71');
+        path.setAttribute('stroke-width', '4');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linecap', 'round');
+
+        svgLines.appendChild(path);
+    });
+}
+
+function updateM4Progress() {
+    const pill = document.getElementById('m4ProgressPill');
+    if (pill) {
+        pill.innerText = `Terselesaikan: ${moduleBookState.m4.matchedPairs.length} / ${moduleBookState.m4.pairs.length} Pasang`;
+    }
+}
+
+// Redraw garis SVG saat ukuran layar berubah (resize/rotate HP)
+window.addEventListener('resize', () => {
+    if (moduleBookState.currentPage === 4) {
+        drawM4Lines();
+    }
+});
 
 
 /* -------------------------------------------
@@ -1049,6 +2058,100 @@ window.renderMultiplicationPocket = renderMultiplicationPocket;
 window.handleRppUpload = function() {
     window.open("Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf", "_blank", "noopener");
 };
+
+/* ============================================================
+   PDF.JS VIEWER UNTUK MODUL AJAR GURU (NATIVE CANVAS DI HP & DESKTOP)
+   ============================================================ */
+let _pdfDoc = null;
+let _pdfLoadingInProgress = false;
+
+function initPdfViewer() {
+    const container = document.getElementById('pdfContainer');
+    if (!container) return;
+
+    // Jika sudah pernah dirender, tidak perlu render ulang
+    if (_pdfDoc && container.querySelector('.pdf-page-card')) return;
+    if (_pdfLoadingInProgress) return;
+    _pdfLoadingInProgress = true;
+
+    const loadingEl = document.getElementById('pdfLoading');
+    if (loadingEl) {
+        loadingEl.style.display = 'block';
+        loadingEl.innerHTML = '<div style="font-size: 2.2rem; margin-bottom: 10px;">⏳</div>Memuat lembaran modul ajar...';
+    }
+
+    if (typeof pdfjsLib === 'undefined') {
+        _pdfLoadingInProgress = false;
+        if (loadingEl) {
+            loadingEl.innerHTML = `
+                <div style="padding: 20px; color: #ffffff;">
+                    <p style="margin-bottom: 12px; font-size: 1rem;">Modul Ajar PDF siap diakses:</p>
+                    <a href="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" target="_blank" rel="noopener" class="btn-pdf-download">📥 Buka Dokumen Modul Ajar</a>
+                </div>`;
+        }
+        return;
+    }
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const pdfUrl = 'Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf';
+
+    pdfjsLib.getDocument(pdfUrl).promise.then(function(doc) {
+        _pdfDoc = doc;
+        _pdfLoadingInProgress = false;
+        if (loadingEl) loadingEl.style.display = 'none';
+
+        const totalPagesLabel = document.getElementById('pdfTotalPagesLabel');
+        if (totalPagesLabel) {
+            totalPagesLabel.textContent = `Modul Ajar Matematika (${doc.numPages} Halaman Lengkap)`;
+        }
+
+        // Render seluruh halaman berurutan ke dalam canvas tajam (High-DPI)
+        for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+            const card = document.createElement('div');
+            card.className = 'pdf-page-card';
+            card.id = `pdfPageCard_${pageNum}`;
+
+            const badge = document.createElement('div');
+            badge.className = 'pdf-page-badge';
+            badge.textContent = `Halaman ${pageNum} dari ${doc.numPages}`;
+            card.appendChild(badge);
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'pdf-page-canvas';
+            canvas.id = `pdfCanvas_${pageNum}`;
+            card.appendChild(canvas);
+
+            container.appendChild(card);
+
+            doc.getPage(pageNum).then(function(page) {
+                // Skala 2.0 untuk rendering teks tajam di layar smartphone (Retina/High-DPI)
+                const scale = 2.0;
+                const viewport = page.getViewport({ scale: scale });
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                page.render(renderContext);
+            });
+        }
+    }).catch(function(err) {
+        _pdfLoadingInProgress = false;
+        console.error('Gagal render PDF via PDF.js:', err);
+        if (loadingEl) {
+            loadingEl.innerHTML = `
+                <div style="padding: 20px; color: #ffffff;">
+                    <p style="margin-bottom: 12px; font-size: 1rem;">Modul Ajar Matematika:</p>
+                    <a href="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" target="_blank" rel="noopener" class="btn-pdf-download">📥 Buka / Unduh Modul Ajar PDF</a>
+                </div>`;
+        }
+    });
+}
+window.initPdfViewer = initPdfViewer;
 
 /* ============================================================
    AUTH — SUPABASE + FALLBACK LOCALSTORAGE
@@ -1383,7 +2486,238 @@ function buildQuiz30(level) {
     return shuffle(questions);
 }
 
+/* ============================================================
+   FITUR PEMBACAAN SUARA SOAL (TEXT-TO-SPEECH) RAMAH ANAK SD
+   ============================================================ */
+let quizAutoVoice = localStorage.getItem('quiz_auto_voice') !== 'false';
+let quizVoiceType = localStorage.getItem('quiz_voice_type') || 'child'; // default suara anak kecil
+let currentSpeechUtterance = null;
+let indonesianVoice = null;
+let isBgmDucked = false;
+let preDuckVolume = 0.3;
+
+function loadIndonesianVoice() {
+    if (!('speechSynthesis' in window)) return;
+    try {
+        const voices = window.speechSynthesis.getVoices();
+        // Prioritaskan suara perempuan / natural bahasa Indonesia agar menghasilkan karakter suara anak kecil yang jernih, imut, dan ekspresif saat pitch dinaikkan
+        indonesianVoice = voices.find(v => {
+            const l = (v.lang || '').toLowerCase();
+            const n = (v.name || '').toLowerCase();
+            const isIndo = l.startsWith('id') || l.startsWith('in') || n.includes('indonesia');
+            return isIndo && (n.includes('gadis') || n.includes('natural') || n.includes('female') || n.includes('wanita') || n.includes('google'));
+        }) || voices.find(v => {
+            const l = (v.lang || '').toLowerCase();
+            const n = (v.name || '').toLowerCase();
+            return l.startsWith('id') || l.startsWith('in') || n.includes('indonesia');
+        }) || null;
+    } catch(e) {}
+}
+
+if ('speechSynthesis' in window) {
+    loadIndonesianVoice();
+    window.speechSynthesis.onvoiceschanged = loadIndonesianVoice;
+}
+
+function changeVoiceType(type) {
+    quizVoiceType = type;
+    localStorage.setItem('quiz_voice_type', type);
+    const sel = document.getElementById('voiceTypeSelect');
+    if (sel) sel.value = type;
+}
+window.changeVoiceType = changeVoiceType;
+
+function testVoicePreview() {
+    if (!('speechSynthesis' in window)) {
+        alert('Fitur pembacaan suara tidak didukung di browser ini.');
+        return;
+    }
+    stopQuizSpeech();
+    if (!indonesianVoice) loadIndonesianVoice();
+
+    const sampleText = quizVoiceType === 'child'
+        ? "Halo teman-teman! Ayo kita belajar perkalian bersama. Seru banget lho!"
+        : "Halo murid-murid! Mari kita belajar perkalian bersama.";
+
+    const utterance = new SpeechSynthesisUtterance(sampleText);
+    utterance.lang = 'id-ID';
+    if (indonesianVoice) utterance.voice = indonesianVoice;
+
+    if (quizVoiceType === 'child') {
+        utterance.pitch = 1.38; // Nada tinggi imut khas anak-anak ceria
+        utterance.rate = 0.94;  // Tempo pas dan lincah
+    } else {
+        utterance.pitch = 1.05; // Suara normal guru
+        utterance.rate = 0.88;
+    }
+
+    duckBgmVolume();
+    utterance.onend = () => restoreBgmVolume();
+    utterance.onerror = () => restoreBgmVolume();
+
+    try {
+        window.speechSynthesis.speak(utterance);
+    } catch(e) {
+        restoreBgmVolume();
+    }
+}
+window.testVoicePreview = testVoicePreview;
+
+function updateQuizVoiceUI() {
+    const icon = document.getElementById('quizVoiceIcon');
+    const status = document.getElementById('quizVoiceStatus');
+    const btn = document.getElementById('quizVoiceToggle');
+    if (!icon || !status || !btn) return;
+    if (quizAutoVoice) {
+        icon.textContent = '🔊';
+        status.textContent = 'Nyala';
+        btn.classList.remove('voice-off');
+    } else {
+        icon.textContent = '🔇';
+        status.textContent = 'Mati';
+        btn.classList.add('voice-off');
+    }
+
+    const voiceSel = document.getElementById('voiceTypeSelect');
+    if (voiceSel) voiceSel.value = quizVoiceType;
+}
+
+function toggleQuizAutoVoice() {
+    quizAutoVoice = !quizAutoVoice;
+    localStorage.setItem('quiz_auto_voice', quizAutoVoice ? 'true' : 'false');
+    updateQuizVoiceUI();
+    if (!quizAutoVoice) {
+        stopQuizSpeech();
+    } else {
+        // Jika dinyalakan saat berada di soal yang belum dijawab, langsung bacakan
+        speakCurrentQuizQuestion(true);
+    }
+}
+window.toggleQuizAutoVoice = toggleQuizAutoVoice;
+
+function duckBgmVolume() {
+    const bgAudio = document.getElementById('backgroundAudio');
+    if (bgAudio && !bgAudio.paused && !bgAudio.muted && !isBgmDucked) {
+        preDuckVolume = bgAudio.volume;
+        // Turunkan volume lagu latar sedikit agar narasi suara terdengar jelas
+        bgAudio.volume = Math.max(0.06, preDuckVolume * 0.35);
+        isBgmDucked = true;
+    }
+}
+
+function restoreBgmVolume() {
+    const bgAudio = document.getElementById('backgroundAudio');
+    if (bgAudio && isBgmDucked) {
+        bgAudio.volume = preDuckVolume;
+        isBgmDucked = false;
+    }
+}
+
+function stopQuizSpeech() {
+    if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
+    currentSpeechUtterance = null;
+    const btn = document.getElementById('btnSpeechQuiz');
+    if (btn) {
+        btn.classList.remove('speaking');
+        btn.innerHTML = `<span class="speech-icon">🔊</span><span class="speech-label">Dengarkan Soal</span>`;
+    }
+    restoreBgmVolume();
+}
+window.stopQuizSpeech = stopQuizSpeech;
+
+function getQuestionSpeechText(q) {
+    if (!q) return '';
+    if (q.type === 'angka') {
+        return `Berapa ${q.a} dikali ${q.b}?`;
+    }
+    if (q.type === 'cerita') {
+        return `${q.text}. Berapa ${q.a} dikali ${q.b}?`;
+    }
+    if (q.type === 'gambar') {
+        return `Ada ${q.a} baris, setiap baris ada ${q.b} ${q.name}. Berapa total ${q.name}? Berapa ${q.a} dikali ${q.b}?`;
+    }
+    return '';
+}
+
+function speakCurrentQuizQuestion(isManualClick = false) {
+    if (!('speechSynthesis' in window)) return;
+    if (!isManualClick && !quizAutoVoice) return;
+    if (!quiz30Questions || quiz30Index >= quiz30Questions.length) return;
+
+    // Jika soal ini sudah dijawab dan bukan klik tombol manual, lewati
+    if (!isManualClick && quiz30Answers[quiz30Index] !== null) return;
+
+    stopQuizSpeech();
+
+    const q = quiz30Questions[quiz30Index];
+    const textToSpeak = getQuestionSpeechText(q);
+    if (!textToSpeak) return;
+
+    if (!indonesianVoice) loadIndonesianVoice();
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'id-ID';
+    if (indonesianVoice) {
+        utterance.voice = indonesianVoice;
+    }
+    
+    // Karakter Suara Anak Kecil vs Suara Normal
+    if (quizVoiceType === 'child') {
+        utterance.pitch = 1.38; // Nada tinggi khas anak-anak ceria
+        utterance.rate = 0.94;  // Tempo pas dan lincah tapi artikulasi tetap jelas
+    } else {
+        utterance.pitch = 1.05; // Suara normal guru
+        utterance.rate = 0.88;
+    }
+
+    utterance.onstart = () => {
+        duckBgmVolume();
+        const btn = document.getElementById('btnSpeechQuiz');
+        if (btn) {
+            btn.classList.add('speaking');
+            btn.innerHTML = `<span class="speech-icon">📢</span><span class="speech-label">Membacakan Soal...</span>`;
+        }
+    };
+
+    utterance.onend = () => {
+        const btn = document.getElementById('btnSpeechQuiz');
+        if (btn) {
+            btn.classList.remove('speaking');
+            btn.innerHTML = `<span class="speech-icon">🔊</span><span class="speech-label">Dengarkan Lagi</span>`;
+        }
+        restoreBgmVolume();
+    };
+
+    utterance.onerror = () => {
+        const btn = document.getElementById('btnSpeechQuiz');
+        if (btn) {
+            btn.classList.remove('speaking');
+            btn.innerHTML = `<span class="speech-icon">🔊</span><span class="speech-label">Dengarkan Soal</span>`;
+        }
+        restoreBgmVolume();
+    };
+
+    currentSpeechUtterance = utterance;
+
+    // Jeda mikro 150ms untuk memastikan kestabilan browser
+    setTimeout(() => {
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch(e) {
+            restoreBgmVolume();
+        }
+    }, 150);
+}
+
+function repeatQuizSpeech() {
+    speakCurrentQuizQuestion(true);
+}
+window.repeatQuizSpeech = repeatQuizSpeech;
+
 function startQuiz30(level) {
+    stopQuizSpeech();
     quiz30Level = level;
     quiz30Questions = buildQuiz30(level);
     quiz30Index = 0;
@@ -1391,6 +2725,7 @@ function startQuiz30(level) {
     quiz30Answers = new Array(30).fill(null);
     showPage('quiz');
     document.getElementById('quizTitle').textContent = `📝 Latihan Soal — ${level.toUpperCase()}`;
+    updateQuizVoiceUI();
     // Reset quizNav visibility (finishQuiz30 menyembunyikannya)
     document.getElementById('quizNav').style.display = 'flex';
     renderQuiz30Question();
@@ -1419,7 +2754,17 @@ function renderQuiz30Question() {
     const modeLabel = isTulis ? '✏️ Isian' : '🔘 Pilihan Ganda';
 
     let html = `<div class="quiz30-card">`;
-    html += `<div class="quiz30-num">Soal ${quiz30Index + 1} dari ${total} <span class="quiz30-mode-badge ${isTulis ? 'badge-tulis' : 'badge-pilih'}">${modeLabel}</span></div>`;
+    html += `
+        <div class="quiz30-top-row">
+            <div class="quiz30-num">
+                Soal ${quiz30Index + 1} dari ${total} 
+                <span class="quiz30-mode-badge ${isTulis ? 'badge-tulis' : 'badge-pilih'}">${modeLabel}</span>
+            </div>
+            <button type="button" class="btn-speech-quiz" id="btnSpeechQuiz" onclick="repeatQuizSpeech()" title="Dengarkan pembacaan soal oleh sistem">
+                <span class="speech-icon">🔊</span>
+                <span class="speech-label">Dengarkan Soal</span>
+            </button>
+        </div>`;
 
     if (q.type === 'angka') {
         html += `<div class="quiz30-soal-angka">${q.a} × ${q.b} = ?</div>`;
@@ -1496,6 +2841,13 @@ function renderQuiz30Question() {
             });
         }
     }
+
+    // Otomatis bacakan soal setelah render jika auto-voice aktif dan belum dijawab
+    if (!alreadyAnswered) {
+        setTimeout(() => {
+            speakCurrentQuizQuestion(false);
+        }, 300);
+    }
 }
 
 function generateOpts30(correct, min, max) {
@@ -1511,6 +2863,7 @@ function generateOpts30(correct, min, max) {
 }
 
 function answerQuiz30(selected) {
+    stopQuizSpeech();
     const q = quiz30Questions[quiz30Index];
     if (quiz30Answers[quiz30Index] !== null) return;
     quiz30Answers[quiz30Index] = selected;
@@ -1537,6 +2890,7 @@ function answerQuiz30(selected) {
 window.answerQuiz30 = answerQuiz30;
 
 function answerQuiz30Input() {
+    stopQuizSpeech();
     const inp = document.getElementById('quiz30Input');
     if (!inp) return;
     const val = inp.value.trim();
@@ -1552,16 +2906,19 @@ function answerQuiz30Input() {
 window.answerQuiz30Input = answerQuiz30Input;
 
 function nextQuiz30() {
+    stopQuizSpeech();
     if (quiz30Index < quiz30Questions.length - 1) { quiz30Index++; renderQuiz30Question(); }
 }
 window.nextQuiz30 = nextQuiz30;
 
 function prevQuiz30() {
+    stopQuizSpeech();
     if (quiz30Index > 0) { quiz30Index--; renderQuiz30Question(); }
 }
 window.prevQuiz30 = prevQuiz30;
 
 async function finishQuiz30() {
+    stopQuizSpeech();
     const total = quiz30Questions.length;
     const correct = quiz30Answers.filter((a, i) => a === quiz30Questions[i].correct).length;
     let grade = correct >= 27 ? '🏆 Luar Biasa!' : correct >= 21 ? '🥇 Hebat!' : correct >= 15 ? '🥈 Bagus!' : '🥉 Terus Berlatih!';

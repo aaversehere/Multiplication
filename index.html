@@ -6,6 +6,7 @@
     <title>PLAY MATCH MULTIPLICATION - Dunia Matematika Ceria</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -271,6 +272,16 @@
             <span id="volumeStatus" style="font-size:0.95rem;font-weight:bold;color:var(--hijau-tua);min-width:38px;">30%</span>
         </div>
     </div>
+    <div class="setting-group">
+        <h3>🗣️ Karakter Suara Soal</h3>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <select id="voiceTypeSelect" class="custom-music-select" onchange="changeVoiceType(this.value)">
+                <option value="child" selected>🧒 Suara Anak Kecil (Ceria)</option>
+                <option value="normal">👩 Suara Normal (Guru)</option>
+            </select>
+            <button type="button" class="btn-action" onclick="testVoicePreview()" style="padding:8px 14px;font-size:0.88rem;border-radius:12px;" title="Coba dengarkan contoh suara">▶️ Tes Suara</button>
+        </div>
+    </div>
     <div class="setting-group" style="flex-direction:column;align-items:flex-start;gap:10px;">
         <h3>👤 Akun</h3>
         <p id="settingUserInfo" style="color:var(--hijau-tua);font-weight:bold;"></p>
@@ -337,9 +348,16 @@
 <!-- ===================== QUIZ ===================== -->
 <section id="quiz" class="page" style="display:none;">
     <div class="quiz-header-bar">
-        <h2 id="quizTitle">Kuis Matematika</h2>
-        <div id="quizProgress">Soal 1 / 30</div>
-        <div id="quizScore">Skor: 0</div>
+        <div class="quiz-header-left">
+            <h2 id="quizTitle" style="margin:0;">Kuis Matematika</h2>
+            <button type="button" id="quizVoiceToggle" class="btn-quiz-voice-toggle" onclick="toggleQuizAutoVoice()" title="Nyalakan/Matikan Pembacaan Suara Soal">
+                <span id="quizVoiceIcon">🔊</span> <span class="voice-toggle-text">Suara: <strong id="quizVoiceStatus">Nyala</strong></span>
+            </button>
+        </div>
+        <div class="quiz-header-right">
+            <div id="quizProgress">Soal 1 / 30</div>
+            <div id="quizScore">Skor: 0</div>
+        </div>
     </div>
     <div id="quizContainer"></div>
     <div id="quizNav" style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
@@ -352,31 +370,342 @@
 <!-- ===================== TEACH ===================== -->
 <section id="teach" class="page" style="display:none;">
     <h2>📚 Modul Ajar (Guru)</h2>
-    <div class="teacher-module">
-        <div class="teacher-module-actions">
-            <a href="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" target="_blank" rel="noopener" class="btn-action" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
-                📥 Buka / Unduh PDF Lengkap
+    <div class="teacher-module-wrap">
+        <div class="teacher-module-topbar">
+            <div class="pdf-meta-info">
+                📄 <span id="pdfTotalPagesLabel">Modul Ajar Matematika (5 Halaman)</span>
+            </div>
+            <a href="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" target="_blank" rel="noopener" class="btn-pdf-download">
+                📥 Unduh PDF Asli
             </a>
         </div>
-        <div class="pdf-viewer">
-            <object data="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf#toolbar=1&navpanes=0" type="application/pdf" width="100%" height="100%">
-                <iframe src="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" style="width:100%; height:100%; border:none;" title="Modul Ajar Guru">
-                    <div style="padding: 30px; text-align: center;">
-                        <p style="font-size:1.1rem; color:var(--hijau-tua); margin-bottom:15px;">Modul Ajar siap dibaca!</p>
-                        <a href="Modul_Ajar_Matematika_Kelas_2_Lengkap.pdf" target="_blank" rel="noopener" class="btn-action" style="text-decoration:none;">📖 Buka Dokumen Modul Ajar PDF</a>
-                    </div>
-                </iframe>
-            </object>
+
+        <div class="pdf-pages-scroll-container" id="pdfContainer">
+            <div id="pdfLoading" class="pdf-loading-state">
+                <div style="font-size: 2rem; margin-bottom: 8px;">⏳</div>
+                Memuat lembaran modul ajar...
+            </div>
         </div>
     </div>
     <button class="btn-back" onclick="showPage('home')" style="margin-top:20px;">⬅️ Kembali</button>
 </section>
 
-<!-- ===================== MODULE ===================== -->
-<section id="module" class="page" style="display:none;">
-    <h2>📘 E-Book Interaktif</h2>
-    <div id="moduleContent"><p>Konten modul sedang dimuat...</p></div>
-    <button class="btn-back" onclick="showPage('home')">Kembali</button>
+<!-- ===================== MODULE (BUKU PETUALANGAN DIGITAL INTERAKTIF) ===================== -->
+<section id="module" class="page adventure-book-page" style="display:none;">
+    <!-- Book Top Bar -->
+    <div class="book-top-bar">
+        <div class="book-title-area">
+            <span class="book-mascot-badge">📖</span>
+            <div>
+                <h2 class="book-main-title">Buku Petualangan Perkalian</h2>
+                <p class="book-sub-title">Jelajahi 4 misi seru dan pahami perkalian dengan gembira!</p>
+            </div>
+        </div>
+        <div class="book-top-actions">
+            <div class="book-page-pill" id="bookPageIndicator">Halaman 1 dari 4</div>
+            <button type="button" class="btn-book-home" onclick="showPage('home')" title="Kembali ke Markas">
+                <span>🏠</span> Kembali ke Markas
+            </button>
+        </div>
+    </div>
+
+    <!-- Book Chapter Tabs -->
+    <div class="book-tabs-nav" id="bookTabsNav">
+        <button type="button" class="book-tab-btn active" onclick="setModulePage(1)" id="tabBtn1">
+            <span class="tab-icon">🐰</span>
+            <span class="tab-label">Misi 1: Menata Makanan</span>
+        </button>
+        <button type="button" class="book-tab-btn" onclick="setModulePage(2)" id="tabBtn2">
+            <span class="tab-icon">🌸</span>
+            <span class="tab-label">Misi 2: Taman Bunga</span>
+        </button>
+        <button type="button" class="book-tab-btn" onclick="setModulePage(3)" id="tabBtn3">
+            <span class="tab-icon">🐸</span>
+            <span class="tab-label">Misi 3: Katak Ceria</span>
+        </button>
+        <button type="button" class="book-tab-btn" onclick="setModulePage(4)" id="tabBtn4">
+            <span class="tab-icon">🧩</span>
+            <span class="tab-label">Misi 4: Kuis Menjodohkan</span>
+        </button>
+    </div>
+
+    <!-- Main Adventure Book Stage -->
+    <div class="adventure-book-wrapper">
+        <div class="book-ribbon-bookmark">✨ Petualangan Ajaib</div>
+        <div class="adventure-book-body" id="adventureBookBody">
+            <!-- PAGE 1: Misi Kelompok Benda dengan Soal Acak -->
+            <div class="book-page-content" id="modulePage1" style="display:block;">
+                <div class="mission-header">
+                    <div class="mission-badge">Misi 1</div>
+                    <h3 class="mission-title">Membantu Hewan Menata Makanan</h3>
+                    <p class="mission-desc">Tarik atau sentuh makanan untuk membaginya secara rata ke dalam keranjang!</p>
+                </div>
+                
+                <!-- Animal Dialogue Card -->
+                <div class="animal-mission-card" id="m1AnimalCard">
+                    <div class="animal-avatar" id="m1AnimalAvatar">🐰</div>
+                    <div class="animal-dialogue">
+                        <div class="dialogue-name" id="m1AnimalName">Kelinci Cerdik</div>
+                        <div class="dialogue-speech" id="m1MissionInstruction">
+                            Bantu aku mengisi <strong>3 keranjang</strong>, di mana setiap keranjang berisi <strong>4 wortel</strong>!
+                        </div>
+                    </div>
+                    <button type="button" class="btn-mission-action" onclick="initMission1(true)" title="Acak soal lain">
+                        🎲 Coba Soal Lain
+                    </button>
+                </div>
+
+                <!-- Mission 1 Play Area -->
+                <div class="m1-play-area">
+                    <!-- Source Food Plate -->
+                    <div class="m1-plate-box">
+                        <div class="m1-plate-header">
+                            <span class="plate-title">🍽️ Piring Makanan Tersedia:</span>
+                            <span class="plate-counter" id="m1FoodRemainingBadge">0 / 0 Tersisa</span>
+                        </div>
+                        <div class="m1-food-plate" id="m1FoodPlate">
+                            <!-- Food items rendered dynamically -->
+                        </div>
+                        <p class="m1-helper-tip">💡 <em>Tip: Kamu bisa <strong>menyeret (drag)</strong> makanan atau cukup <strong>klik/sentuh</strong> makanan untuk memasukkannya ke keranjang!</em></p>
+                    </div>
+
+                    <!-- Destination Baskets -->
+                    <div class="m1-baskets-container" id="m1BasketsContainer">
+                        <!-- Baskets rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- Real-time calculation & feedback -->
+                <div class="m1-feedback-card" id="m1FeedbackCard" style="display:none;">
+                    <div class="feedback-celebration-title">🎉 Hore! Semua Makanan Tertata Rapi! 🎉</div>
+                    <div class="feedback-math-box">
+                        <div class="math-row">
+                            <span class="math-label">Penjumlahan Berulang:</span>
+                            <span class="math-formula-badge" id="m1RepeatedAddition">4 + 4 + 4 = 12</span>
+                        </div>
+                        <div class="math-row">
+                            <span class="math-label">Bentuk Perkalian:</span>
+                            <span class="math-formula-highlight" id="m1MultiplicationFormula">3 × 4 = 12</span>
+                        </div>
+                    </div>
+                    <div class="feedback-action-btns">
+                        <button type="button" class="btn-celebrate-next" onclick="initMission1(true)">
+                            🎲 Lanjut Soal Acak Berikutnya
+                        </button>
+                        <button type="button" class="btn-celebrate-page" onclick="setModulePage(2)">
+                            🌸 Pergi ke Halaman 2: Taman Bunga ➡️
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 2: Simulasi Susunan Array (Model Baris & Kolom) -->
+            <div class="book-page-content" id="modulePage2" style="display:none;">
+                <div class="mission-header">
+                    <div class="mission-badge">Misi 2</div>
+                    <h3 class="mission-title">Taman Bunga Ajaib</h3>
+                    <p class="mission-desc">Atur jumlah baris dan kolom untuk menanam bunga indah di kebun!</p>
+                </div>
+
+                <!-- Array Controls Card -->
+                <div class="m2-controls-card">
+                    <!-- Stepper Baris -->
+                    <div class="stepper-item">
+                        <div class="stepper-label">
+                            <span>↕️</span> Jumlah Baris:
+                        </div>
+                        <div class="stepper-controls">
+                            <button type="button" class="btn-step" onclick="changeArrayDimension('rows', -1)" aria-label="Kurang Baris">−</button>
+                            <span class="stepper-value" id="m2RowsValue">2</span>
+                            <button type="button" class="btn-step" onclick="changeArrayDimension('rows', 1)" aria-label="Tambah Baris">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Multiplier Symbol -->
+                    <div class="stepper-times-sign">×</div>
+
+                    <!-- Stepper Kolom -->
+                    <div class="stepper-item">
+                        <div class="stepper-label">
+                            <span>↔️</span> Jumlah Kolom:
+                        </div>
+                        <div class="stepper-controls">
+                            <button type="button" class="btn-step" onclick="changeArrayDimension('cols', -1)" aria-label="Kurang Kolom">−</button>
+                            <span class="stepper-value" id="m2ColsValue">4</span>
+                            <button type="button" class="btn-step" onclick="changeArrayDimension('cols', 1)" aria-label="Tambah Kolom">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Flower Theme Selector -->
+                    <div class="stepper-item flower-picker-item">
+                        <div class="stepper-label"><span>🌱</span> Bibit Bunga:</div>
+                        <div class="flower-selector-options" id="m2FlowerOptions">
+                            <button type="button" class="btn-flower-chip active" onclick="setGardenFlower('🌸')">🌸</button>
+                            <button type="button" class="btn-flower-chip" onclick="setGardenFlower('🌻')">🌻</button>
+                            <button type="button" class="btn-flower-chip" onclick="setGardenFlower('🌷')">🌷</button>
+                            <button type="button" class="btn-flower-chip" onclick="setGardenFlower('🌹')">🌹</button>
+                            <button type="button" class="btn-flower-chip" onclick="setGardenFlower('🌼')">🌼</button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-water-garden" onclick="waterGarden()">
+                        💦 Siram Taman!
+                    </button>
+                </div>
+
+                <!-- Garden Bed Container -->
+                <div class="m2-garden-wrapper">
+                    <div class="garden-soil-bed" id="m2GardenBed">
+                        <!-- Flower Grid rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- Array Math Formula Card -->
+                <div class="m2-formula-card">
+                    <div class="m2-formula-main" id="m2FormulaMain">
+                        2 Baris × 4 Kolom = 8 Bunga
+                    </div>
+                    <div class="m2-formula-sub" id="m2FormulaSub">
+                        Penjumlahan Berulang: 4 + 4 = 8 (Ada 2 baris, tiap baris isi 4 bunga)
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 3: Lompatan Garis Bilangan -->
+            <div class="book-page-content" id="modulePage3" style="display:none;">
+                <div class="mission-header">
+                    <div class="mission-badge">Misi 3</div>
+                    <h3 class="mission-title">Lompatan Katak Ceria</h3>
+                    <p class="mission-desc">Tekan tombol lompat untuk melihat katak melompat di atas garis bilangan!</p>
+                </div>
+
+                <!-- Frog Step Control Toolbar -->
+                <div class="m3-step-toolbar">
+                    <div class="step-choice-group">
+                        <span class="step-choice-label">Pilih Langkah Lompat:</span>
+                        <div class="step-chips">
+                            <button type="button" class="btn-step-chip" onclick="setFrogStep(2)" id="frogStepBtn2">+2 Langkah</button>
+                            <button type="button" class="btn-step-chip active" onclick="setFrogStep(3)" id="frogStepBtn3">+3 Langkah</button>
+                            <button type="button" class="btn-step-chip" onclick="setFrogStep(4)" id="frogStepBtn4">+4 Langkah</button>
+                            <button type="button" class="btn-step-chip" onclick="setFrogStep(5)" id="frogStepBtn5">+5 Langkah</button>
+                        </div>
+                    </div>
+                    <div class="step-action-buttons">
+                        <button type="button" class="btn-frog-jump" id="btnFrogJump" onclick="frogJumpNext()">
+                            🐸 Lompat 3 Langkah!
+                        </button>
+                        <button type="button" class="btn-frog-auto" id="btnFrogAuto" onclick="frogJumpAuto()">
+                            ⏩ Lompat Otomatis
+                        </button>
+                        <button type="button" class="btn-frog-reset" onclick="resetFrogMission()">
+                            ⏮️ Mulai dari 0
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Number Line Container -->
+                <div class="m3-numberline-box">
+                    <div class="numberline-stage" id="m3NumberLineStage">
+                        <!-- Animated jumping frog mascot -->
+                        <div class="jumping-frog-mascot" id="m3FrogMascot" style="left: 0%;">
+                            <span class="frog-emoji">🐸</span>
+                            <span class="frog-step-count" id="m3FrogCountBadge">0x</span>
+                        </div>
+                        <!-- Canvas/Arcs for landing tracks -->
+                        <svg class="numberline-svg-arcs" id="m3SvgArcs" viewBox="0 0 1000 120" preserveAspectRatio="none">
+                            <!-- Dynamic arc paths -->
+                        </svg>
+                        <!-- Line track and ticks -->
+                        <div class="numberline-track"></div>
+                        <div class="numberline-ticks" id="m3NumberTicks">
+                            <!-- 0-20 tick marks dynamically generated -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Frog Math Result Card -->
+                <div class="m3-math-card">
+                    <div class="m3-jump-stats" id="m3JumpStats">
+                        Katak telah melompat <strong id="m3JumpCountText">0</strong> kali dengan langkah <strong id="m3StepSizeText">3</strong>.
+                    </div>
+                    <div class="m3-formula-repeated" id="m3FormulaRepeated">
+                        0 = 0
+                    </div>
+                    <div class="m3-formula-multiplication" id="m3FormulaMultiplication">
+                        Bentuk Perkalian: 0 × 3 = 0
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 4: Mini Kuis Menjodohkan (Direct Feedback) -->
+            <div class="book-page-content" id="modulePage4" style="display:none;">
+                <div class="mission-header">
+                    <div class="mission-badge">Misi 4</div>
+                    <h3 class="mission-title">Cocokkan Gambar & Rumus Perkalian</h3>
+                    <p class="mission-desc">Hubungkan kelompok benda di sisi kiri dengan rumus perkalian yang tepat di sisi kanan!</p>
+                </div>
+
+                <div class="m4-matching-arena-wrapper">
+                    <!-- Instruction helper bar -->
+                    <div class="m4-helper-bar">
+                        <span class="m4-progress-pill" id="m4ProgressPill">Terselesaikan: 0 / 4 Pasang</span>
+                        <span class="m4-tip-pill">💡 Sentuh kartu kiri lalu sentuh kartu kanan pasangannya!</span>
+                        <button type="button" class="btn-m4-refresh" onclick="initMission4(true)">
+                            🎲 Acak Soal Baru
+                        </button>
+                    </div>
+
+                    <!-- Matching Arena with SVG connecting canvas -->
+                    <div class="m4-matching-arena" id="m4MatchingArena">
+                        <svg class="m4-svg-lines" id="m4SvgLines">
+                            <!-- SVG lines drawn between matched points -->
+                        </svg>
+
+                        <!-- Left Column: Visual item cards -->
+                        <div class="m4-col m4-left-col" id="m4LeftCol">
+                            <!-- Left cards rendered dynamically -->
+                        </div>
+
+                        <!-- Right Column: Multiplication formulas -->
+                        <div class="m4-col m4-right-col" id="m4RightCol">
+                            <!-- Right cards rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Mission 4 Success Celebration Modal / Card -->
+                    <div class="m4-success-banner" id="m4SuccessBanner" style="display:none;">
+                        <div class="banner-trophy">🏆🌟</div>
+                        <h4>Luar Biasa, Kamu Juara Matematika!</h4>
+                        <p>Semua pasangan gambar dan rumus perkalian berhasil dicocokkan dengan sempurna!</p>
+                        <div class="banner-buttons">
+                            <button type="button" class="btn-celebrate-next" onclick="initMission4(true)">
+                                🔄 Mainkan Kuis Lainnya
+                            </button>
+                            <button type="button" class="btn-celebrate-page" onclick="setModulePage(1)">
+                                📖 Kembali ke Halaman 1
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Bottom Flip / Slide Navigation -->
+    <div class="book-bottom-nav">
+        <button type="button" class="btn-book-nav btn-book-prev" id="btnBookPrev" onclick="navigateModulePage(-1)">
+            ⬅️ Halaman Sebelumnya
+        </button>
+        <div class="book-page-dots" id="bookPageDots">
+            <span class="page-dot active" onclick="setModulePage(1)"></span>
+            <span class="page-dot" onclick="setModulePage(2)"></span>
+            <span class="page-dot" onclick="setModulePage(3)"></span>
+            <span class="page-dot" onclick="setModulePage(4)"></span>
+        </div>
+        <button type="button" class="btn-book-nav btn-book-next" id="btnBookNext" onclick="navigateModulePage(1)">
+            Halaman Selanjutnya ➡️
+        </button>
+    </div>
 </section>
 
 <!-- ===================== MEDIA ===================== -->
